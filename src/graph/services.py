@@ -47,6 +47,23 @@ class GraphServices():
             new_execution = await execution_repo.add(new_execution)
             return new_execution.id
         
+    async def update_execution(self, execution_id: str, status: str, status_message: str) -> Execution:
+        """
+        Update the execution status.
+        """
+        if status not in [item.value for item in Status]:
+            raise ValueError(f"Invalid status: {status}")
+        
+        async with get_graph_session() as session:
+            execution_repo = ExecutionRepo(session)
+            execution = await execution_repo.get_by_id(execution_id)
+            if not execution:
+                raise ValueError(f"Execution with id {execution_id} not found.")
+            execution.status = Status(status)
+            execution.status_message = status_message
+            await execution_repo.add(execution)
+            return execution
+        
     async def get_dependecies(self, section_id: str) -> str:
         """
         Get dependencies for a section.
@@ -54,19 +71,29 @@ class GraphServices():
         async with get_graph_session() as session:
             section_repo = SectionRepo(session)
             dependencies = await section_repo.get_dependencies(section_id)
-            dependencies_content = []
+            dependencies_list = []
             for dependency in dependencies:
                 if dependency.type.value == "section":
                     section_exec_repo = SectionExecRepo(session)
-                    content = await section_exec_repo.get_last_execution(dependency.depends_on)
-                    content = content.output
+                    section_exec = await section_exec_repo.get_last_execution(dependency.depends_on)
+                    dependencies_list.append(
+                        {
+                            "id": section_exec.id,
+                            "content": section_exec.output,
+                            "type": "section",
+                        }
+                    )
                 else:
                     knowledge_repo = KnowledgeRepo(session)
                     content = await knowledge_repo.get_by_id(dependency.depends_on)
-                    content = content.content
-                dependencies_content.append(content)
-            dependencies_content = "\n".join(dependencies_content)
-            return dependencies_content
+                    dependencies_list.append(
+                        {
+                            "id": content.id,
+                            "content": content.content,
+                            "type": "knowledge",
+                        }
+                    )
+            return dependencies_list
         
     async def save_section_execution(self, section_id: str, execution_id: str, output: str) -> SectionExecution:
         """

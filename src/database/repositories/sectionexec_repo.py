@@ -16,4 +16,4 @@ class SectionExecRepo(BaseRepository[SectionExecution]):
         section_execution = section_execution.scalars().first()
         if section_execution is None:
             raise ValueError(f"No execution found for section with id {section_id}.")
-        return section_execution.output
+        return section_execution

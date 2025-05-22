@@ -1,53 +1,61 @@
-from langchain.chat_models import init_chat_model
 from langgraph.graph import END, START, StateGraph
-from dotenv import load_dotenv
 from .nodes import (
     State, Config, entrypoint, sort_sections,
-    get_dependencies, execute_section, save_section_execution
+    get_dependencies, execute_section, save_section_execution,
+    should_continue, eval_update_past_sections, should_update,
+    update_past_sections, end_execution
 )
-import os
 import asyncio
-
-load_dotenv()
-
-
-gpt = init_chat_model(
-    model="azure_openai:gpt-4.1",
-    azure_deployment="gpt-4.1",
-)
-
-# llama = init_chat_model(
-#     model="ibm:meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
-#     project_id=os.getenv("WATSONX_PROJECT_ID")
-# )
-
-# granite = init_chat_model(
-#     model="ibm:ibm/granite-3-3-8b-instruct",
-#     model_provider="ibm",
-#     project_id=os.getenv("WATSONX_PROJECT_ID")
-# )
 
 
 def compile_graph():
+    """
+    Compile the state graph for the execution of sections.
+    """
+    # Create a state graph
     graph = StateGraph(State, config_schema=Config)
+    
+    # Add nodes to the graph
     graph.add_node("entrypoint", entrypoint)
     graph.add_node("sort_sections", sort_sections)
     graph.add_node("get_dependencies", get_dependencies)
     graph.add_node("execute_section", execute_section)
+    graph.add_node("eval_update_past_sections", eval_update_past_sections)
+    graph.add_node("update_past_sections", update_past_sections)
+    graph.add_node("end_execution", end_execution)
     graph.add_node("save_section_execution", save_section_execution)
     
+    # Add edges to the graph
     graph.add_edge(START, "entrypoint")
     graph.add_edge("entrypoint", "sort_sections")
     graph.add_edge("sort_sections", "get_dependencies")
     graph.add_edge("get_dependencies", "execute_section")
-    graph.add_edge("execute_section", "save_section_execution")
-    graph.add_edge("save_section_execution", END)
+    graph.add_edge("execute_section", "eval_update_past_sections")
+    graph.add_conditional_edges(
+        "eval_update_past_sections",
+        should_update,
+        {
+            True: "update_past_sections",
+            False: "save_section_execution",
+        }
+    )
+    graph.add_conditional_edges(
+        "save_section_execution",
+        should_continue,
+        {
+            True: "sort_sections",
+            False: "end_execution",
+        }
+    )
+    graph.add_edge("update_past_sections", "save_section_execution")
+    graph.add_edge("end_execution", END)
     
+    # Compile the graph
     compiled_graph = graph.compile(
     )
     return compiled_graph
 
-
+# Variable used by langgraph studio as starting point
 compiled_graph = compile_graph()
 
 if __name__ == "__main__":
@@ -57,8 +65,6 @@ if __name__ == "__main__":
         }
         
         initial_config = {
-            "llm": gpt,
-            "eval_llm": None,
             "recursion_limit": 40,
         }
         
