@@ -108,5 +108,18 @@ class GraphServices():
             )
             await section_exec_repo.add(new_section_execution)
             return new_section_execution
+        
+    async def update_section_execution(self, section_exec_id: str, output: str) -> SectionExecution:
+        """
+        Update the section execution in the database.
+        """
+        async with get_graph_session() as session:
+            section_exec_repo = SectionExecRepo(session)
+            section_execution = await section_exec_repo.get_by_id(section_exec_id)
+            if not section_execution:
+                raise ValueError(f"SectionExecution with id {section_exec_id} not found.")
+            section_execution.output = output
+            await section_exec_repo.add(section_execution)
+            return section_execution
 
         

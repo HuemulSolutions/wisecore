@@ -3,13 +3,14 @@ from .llms import get_llm
 from langgraph.types import Command, StreamWriter
 from .services import GraphServices
 from .utils import topological_sort
-from .prompts import (writer_prompt, past_section_prompt)
+from .prompts import (writer_prompt, past_section_prompt, 
+                      update_past_section_prompt)
 from .schemas import EvaluateUpdateSection
 
 
 graph_services = GraphServices()
 
-llm = get_llm("gpt-4.1")
+llm = get_llm("llama")
 
 class State(TypedDict):
     document_id: str
@@ -112,9 +113,10 @@ async def eval_update_past_sections(state: State, config: BaseConfig) -> State:
                 should_update_list.append(
                     {
                         "id": dependency['id'],
+                        "content": dependency['content'],
                         "explanation": should_update.explanation
-                    }
-                )
+                        }
+                    )
     state['should_update'] = should_update_list
     return state
 
@@ -132,6 +134,17 @@ async def update_past_sections(state: State, config: BaseConfig) -> State:
     """
     Update the past sections in the database.
     """
+    for section in state['should_update']:
+        prompt = update_past_section_prompt.format(
+            past_section=section['content'],
+            current_section=state['current_section']['output'],
+            feedback=section['explanation']
+        )
+        response = await llm.ainvoke(prompt)
+        _ = await graph_services.update_section_execution(
+            section_exec_id=section['id'],
+            output=response.content
+        )
     return state
 
 
