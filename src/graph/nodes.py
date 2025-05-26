@@ -27,13 +27,14 @@ class BaseConfig(TypedDict):
     configurable: Config
 
 
-async def entrypoint(state: State, config: BaseConfig) -> State:
+async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> State:
     """
     Entry point for the graph. It retrieves the sections and creates an execution.
     """
     print(state)
     state['sections'] = await graph_services.get_sections_by_document_id(state['document_id'])
     state['execution_id'] = await graph_services.create_execution(state['document_id'])
+    writer({"data": {"execution_id": state['execution_id']}})
     return state
 
 
@@ -66,10 +67,11 @@ async def get_dependencies(state: State, config: BaseConfig) -> State:
     return state
 
 
-async def execute_section(state: State, config: BaseConfig) -> State:
+async def execute_section(state: State, config: BaseConfig, writer: StreamWriter) -> State:
     """
     Write the section using the LLM.
     """
+    writer({"data": {"section_id": state['current_section']['id']}})
     document_info = await graph_services.get_document_by_id(state['document_id'])
     section = await graph_services.get_section_by_id(state['current_section']['id'])
     dependencies_content = "\n".join(dep['content'] for dep in 
@@ -130,11 +132,12 @@ def should_update(state: State, config: BaseConfig) -> bool:
         return False
 
 
-async def update_past_sections(state: State, config: BaseConfig) -> State:
+async def update_past_sections(state: State, config: BaseConfig, writer: StreamWriter) -> State:
     """
     Update the past sections in the database.
     """
     for section in state['should_update']:
+        writer({"data": {"section_id": section['id']}})
         prompt = update_past_section_prompt.format(
             past_section=section['content'],
             current_section=state['current_section']['output'],

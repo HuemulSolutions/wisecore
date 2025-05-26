@@ -32,6 +32,7 @@ Recuerda lo siguiente:
 Apegate a la información proporcionada y al tema del procedimiento.
 Redacta una sección pensando que será parte de un documento más grande.
 Usa lenguaje técnico y preciso, pero comprensible y formal.
+Si es adecuado, usa formato markdown para mejorar la legibilidad del texto.
 """
 
 
