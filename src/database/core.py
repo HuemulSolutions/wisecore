@@ -19,6 +19,10 @@ session = sessionmaker(
 async def get_graph_session() -> AsyncGenerator[AsyncSession, None]:
     async with session() as db_session:
         yield db_session
+        
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with session() as db_session:
+        yield db_session
 
 async def create_database():
     async with engine.begin() as conn:
