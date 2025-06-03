@@ -34,7 +34,7 @@ async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> 
     print(state)
     state['sections'] = await graph_services.get_sections_by_document_id(state['document_id'])
     state['execution_id'] = await graph_services.create_execution(state['document_id'])
-    writer({"data": {"execution_id": state['execution_id']}})
+    writer({"data": {"execution_id": str(state['execution_id'])}})
     return state
 
 

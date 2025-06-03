@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.execution_service import ExecutionService
@@ -7,6 +8,33 @@ from src.utils import get_transaction_id
 
 
 router = APIRouter(prefix="/execution")
+
+@router.get("/{document_id}")
+async def get_executions_by_doc_id(document_id: str,
+                                   session: Session = Depends(get_session),
+                                   transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all executions.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        executions = await execution_service.execution_repo.get_executions_by_doc_id(document_id)
+        if not executions:
+            raise HTTPException(
+                status_code=404,
+                detail="No executions found."
+            )
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(executions)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving executions: {str(e)}"}
+        )
 
 @router.get("/status/{execution_id}")
 async def get_execution_status(execution_id: str, 
@@ -36,7 +64,7 @@ async def get_execution_status(execution_id: str,
                     "error": f"An error occurred while retrieving the execution status: {str(e)}"}
         )
         
-@router.get("/export/{execution_id}")
+@router.get("/export_markdown/{execution_id}")
 async def export_execution(execution_id: str, 
                            session: Session = Depends(get_session),
                            transaction_id: str = Depends(get_transaction_id)):

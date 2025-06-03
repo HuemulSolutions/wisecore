@@ -9,6 +9,14 @@ class ExecutionService:
         self.execution_repo = ExecutionRepo(session)
         self.section_exec_repo = SectionExecRepo(session)
 
+    async def get_executions_by_doc_id(self, document_id: str) -> list:
+        """
+        Retrieve all executions.
+        """
+        executions = await self.execution_repo.get_executions_by_doc_id(document_id)
+        if not executions:
+            raise ValueError("No executions found.")
+        return executions
     
     async def get_execution_status(self, execution_id: str) -> str:
         """
