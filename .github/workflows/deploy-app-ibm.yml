@@ -18,11 +18,11 @@ jobs:
       uses: IBM/code-engine-github-action@v1
       with:
         api-key: ${{ secrets.IBM_IAM_API_KEY }}
-        resource-group: 'watsonxai-jri9us5i'
+        resource-group: '612445d8b2fc42de9c36f01d586725d6'
         region: 'us-south'
-        project: 'wisecore'
+        project: 'wisecore-interno'
         component: 'app'
         name: 'wisecore-backend'
         build-source: './'
         cpu: 1
-        memory: 2G
+        memory: 4G
