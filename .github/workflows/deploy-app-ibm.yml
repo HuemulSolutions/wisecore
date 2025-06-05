@@ -18,7 +18,7 @@ jobs:
       uses: IBM/code-engine-github-action@v1
       with:
         api-key: ${{ secrets.IBM_IAM_API_KEY }}
-        resource-group: '612445d8b2fc42de9c36f01d586725d6'
+        resource-group: 'Default'
         region: 'us-south'
         project: 'wisecore-interno'
         component: 'app'
