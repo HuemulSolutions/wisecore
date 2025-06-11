@@ -19,11 +19,6 @@ async def get_executions_by_doc_id(document_id: str,
     try:
         execution_service = ExecutionService(session)
         executions = await execution_service.execution_repo.get_executions_by_doc_id(document_id)
-        if not executions:
-            raise HTTPException(
-                status_code=404,
-                detail="No executions found."
-            )
         
         return ResponseSchema(
             transaction_id=transaction_id,
