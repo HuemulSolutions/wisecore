@@ -88,3 +88,35 @@ async def get_document_sections(document_id: str,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while retrieving sections for document ID {document_id}: {str(e)}"}
         )
+        
+@router.post("/{document_id}/dependencies/{depends_on_id}")
+async def add_document_dependency(document_id: str,
+                                  depends_on_id: str,
+                                  session: Session = Depends(get_session),
+                                  transaction_id: str = Depends(get_transaction_id)):
+    """
+    Add a dependency relationship between two documents.
+    
+    Args:
+        document_id: The ID of the document that depends on another
+        depends_on_id: The ID of the document that is depended upon
+    """
+    document_service = DocumentService(session)
+    try:
+        updated_document = await document_service.add_document_dependency(document_id, depends_on_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while adding dependency: {str(e)}"}
+        )

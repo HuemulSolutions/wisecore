@@ -14,3 +14,10 @@ class GenerateDocument(BaseModel):
     Schema for generating a document.
     """
     document_id: str
+    
+    
+class CreateTemplate(BaseModel):
+    """
+    Schema for creating a template.
+    """
+    name: str

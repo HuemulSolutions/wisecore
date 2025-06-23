@@ -1,6 +1,6 @@
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
-from src.config import config
+from src.config import system_config
 
 def get_llm(llm: str)-> BaseChatModel:
     if llm == "gpt-4.1":
@@ -12,13 +12,13 @@ def get_llm(llm: str)-> BaseChatModel:
     elif llm == "llama":
         llama = init_chat_model(
             model="ibm:meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
-            project_id=config.WATSONX_PROJECT_ID
+            project_id=system_config.WATSONX_PROJECT_ID
         )
         return llama
     elif llm == "granite":
         granite = init_chat_model(
             model="ibm:ibm/granite-3-3-8b-instruct",
             model_provider="ibm",
-            project_id=config.WATSONX_PROJECT_ID
+            project_id=system_config.WATSONX_PROJECT_ID
         )
         return granite

@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.repositories.document_repo import DocumentRepo
 from src.database.repositories.section_repo import SectionRepo
 from src.database.repositories.execution_repo import ExecutionRepo
-from src.database.repositories.knowledge_repo import KnowledgeRepo
 from src.database.repositories.sectionexec_repo import SectionExecRepo
 from src.database.models import Execution, Status, SectionExecution, Section
 from src.database.core import get_graph_session
@@ -83,16 +82,16 @@ class GraphServices():
                             "type": "section",
                         }
                     )
-                else:
-                    knowledge_repo = KnowledgeRepo(session)
-                    content = await knowledge_repo.get_by_id(dependency.depends_on)
-                    dependencies_list.append(
-                        {
-                            "id": content.id,
-                            "content": content.content,
-                            "type": "knowledge",
-                        }
-                    )
+                # else:
+                #     knowledge_repo = KnowledgeRepo(session)
+                #     content = await knowledge_repo.get_by_id(dependency.depends_on)
+                #     dependencies_list.append(
+                #         {
+                #             "id": content.id,
+                #             "content": content.content,
+                #             "type": "knowledge",
+                #         }
+                #     )
             return dependencies_list
         
     async def save_section_execution(self, section_id: str, execution_id: str, output: str) -> SectionExecution:

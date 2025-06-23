@@ -3,9 +3,9 @@ from contextlib import asynccontextmanager
 from .models import Base
 from typing import AsyncGenerator
 from sqlalchemy.orm import sessionmaker
-from src.config import config
+from src.config import system_config
 
-DATABASE_URL = config.DATABASE_URL
+DATABASE_URL = system_config.DATABASE_URL
 
 engine = create_async_engine(DATABASE_URL)
 
