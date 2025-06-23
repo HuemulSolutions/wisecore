@@ -1,5 +1,5 @@
 .venv
-.env
+.env*
 .langgraph_api
 __pycache__/
 local_testing/
