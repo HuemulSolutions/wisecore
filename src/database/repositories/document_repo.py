@@ -89,7 +89,7 @@ class DocumentRepo(BaseRepository[Document]):
         """
         document = await self.session.execute(
             select(Document)
-            .options(selectinload(Document.outgoing_dependencies).selectinload(Dependency.depends_on))
+            .options(selectinload(Document.dependencies).selectinload(Dependency.depends_on))
             .where(Document.id == document_id)
         )
         doc = document.scalar_one_or_none()
@@ -97,7 +97,7 @@ class DocumentRepo(BaseRepository[Document]):
         if not doc:
             raise ValueError("Document not found")
         
-        return [dep.depends_on for dep in doc.outgoing_dependencies]
+        return [dep.depends_on for dep in doc.dependencies]
     
     async def get_document_dependents(self, document_id: str):
         """
