@@ -17,3 +17,13 @@ class TemplateRepo(BaseRepository[Template]):
                  .options(selectinload(Template.template_sections)))
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+    
+    async def get_template_sections(self, template_id: str) -> list[TemplateSection]:
+        """
+        Retrieve all sections for a specific template.
+        """
+        query = (select(TemplateSection)
+                 .where(TemplateSection.template_id == template_id)
+                 .options(selectinload(TemplateSection.internal_dependencies)))
+        result = await self.session.execute(query)
+        return result.scalars().all()

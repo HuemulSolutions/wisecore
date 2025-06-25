@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from datetime import timezone
-from typing import Union
+from typing import Union, Optional, List
 
 class ResponseSchema(BaseModel):
     data: Union[dict, list]
@@ -39,4 +39,12 @@ class CreateTemplateSectionDependency(BaseModel):
     """
     section_id: str
     depends_on_id: str
+    
+class CreateDocument(BaseModel):
+    """
+    Schema for creating a document.
+    """
+    name: str
+    description: str
+    template_id: Optional[str] = None  # Optional field, can be None
     

@@ -1,12 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.repositories.document_repo import DocumentRepo
 from src.database.repositories.section_repo import SectionRepo
+from src.database.repositories.template_repo import TemplateRepo
+from src.database.repositories.inner_depend_repo import InnerDependencyRepo
+from src.database.models import Document, Section, InnerDependency
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.document_repo = DocumentRepo(session)
         self.section_repo = SectionRepo(session)
+        self.template_repo = TemplateRepo(session)
+        self.inner_dependency_repo = InnerDependencyRepo(session)
 
     async def get_document_by_id(self, document_id: str):
         """
@@ -32,3 +37,61 @@ class DocumentService:
         if not sections:
             raise ValueError(f"No sections found for document ID {document_id}.")
         return sections
+    
+    async def create_document(self, name: str, description: str, template_id: str = None):
+        """
+        Create a new document.
+        """
+        print("Checking if template_id is provided:", template_id)
+        if template_id and not await self.template_repo.get_by_id(template_id):
+            raise ValueError(f"Template with ID {template_id} not found.")
+        
+        new_document = Document(name=name, description=description, template_id=template_id)
+        await self.document_repo.add(new_document)
+        
+        # If template_id is provided, copy template sections to document sections
+        if template_id:
+            await self._copy_template_sections_to_document(template_id, new_document.id)
+        
+        return new_document
+
+    async def _copy_template_sections_to_document(self, template_id: str, document_id: str):
+        """
+        Copy template sections and their dependencies to a document.
+        """
+        # Get template sections
+        template_sections = await self.template_repo.get_template_sections(template_id)
+        
+        # Create a mapping from template_section_id to new section_id
+        template_to_section_mapping = {}
+        
+        # First pass: create all sections
+        for template_section in template_sections:
+            new_section = Section(
+                name=template_section.name,
+                type=template_section.type,
+                prompt=template_section.prompt,
+                order=template_section.order,
+                document_id=document_id,
+                template_section_id=template_section.id
+            )
+            await self.section_repo.add(new_section)
+            template_to_section_mapping[template_section.id] = new_section.id
+        
+        # Second pass: create internal dependencies
+        for template_section in template_sections:
+            if hasattr(template_section, 'internal_dependencies') and template_section.internal_dependencies:
+                for template_dependency in template_section.internal_dependencies:
+                    section_id = template_to_section_mapping[template_section.id]
+                    depends_on_section_id = template_to_section_mapping[template_dependency.depends_on_template_section_id]
+                    
+                    inner_dependency = InnerDependency(
+                        section_id=section_id,
+                        depends_on_section_id=depends_on_section_id
+                    )
+                    await self.inner_dependency_repo.add(inner_dependency)
+        
+        # Commit all changes
+        await self.session.flush()
+
+

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.document_service import DocumentService
 from src.utils import get_transaction_id
-from src.schemas import ResponseSchema
+from src.schemas import ResponseSchema, CreateDocument
 
 router = APIRouter(prefix="/documents")
 
@@ -60,6 +60,37 @@ async def get_all_documents(session: Session = Depends(get_session),
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while retrieving all documents: {str(e)}"}
+        )
+        
+@router.post("/")
+async def create_document(create_document: CreateDocument,
+                          session: Session = Depends(get_session),
+                          transaction_id: str = Depends(get_transaction_id)):
+    """
+    Create a new document.
+    """
+    document_service = DocumentService(session)
+    try:
+        new_document = await document_service.create_document(
+            name=create_document.name,
+            description=create_document.description,
+            template_id=create_document.template_id
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(new_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while creating the document: {str(e)}"}
         )
         
 @router.get("/{document_id}/sections")

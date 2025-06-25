@@ -18,6 +18,17 @@ class TemplateSectionRepo(BaseRepository[TemplateSection]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
     
+    async def get_by_order(self, order: int, template_id: str) -> TemplateSection:
+        """
+        Retrieve a template section by its order and template ID.
+        """
+        query = select(self.model).where(
+            self.model.order == order,
+            self.model.template_id == template_id
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+    
     async def get_by_id(self, section_id: str) -> TemplateSection:
         """
         Retrieve a template section by its ID.

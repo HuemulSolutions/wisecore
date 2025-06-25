@@ -21,6 +21,9 @@ class TemplateSectionService:
         check_name = await self.template_section_repo.get_by_name(name, template_id)
         if check_name:
             raise ValueError(f"Template section with name {name} already exists in template {template_id}.")
+        check_order = await self.template_section_repo.get_by_order(order, template_id)
+        if check_order:
+            raise ValueError(f"Template section with order {order} already exists in template {template_id}.")
         new_section = TemplateSection(name=name, template_id=template_id,
                                      order=order, prompt=prompt, type=type)
         created_section = await self.template_section_repo.add(new_section)
