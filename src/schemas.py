@@ -21,3 +21,22 @@ class CreateTemplate(BaseModel):
     Schema for creating a template.
     """
     name: str
+    
+class CreateTemplateSection(BaseModel):
+    """
+    Schema for creating a template section.
+    """
+    name: str
+    template_id: str
+    order: int
+    prompt: str
+    type: str = "text"  # Optional field, can be None
+    
+    
+class CreateTemplateSectionDependency(BaseModel):
+    """
+    Schema for creating a dependency between template sections.
+    """
+    section_id: str
+    depends_on_id: str
+    

@@ -25,8 +25,8 @@ class Dependency(BaseClass):
     depends_on_document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
     depends_on_section_id = Column(UUID(as_uuid=True), ForeignKey("section.id"), nullable=True)
     
-    document = relationship("Document", foreign_keys=[document_id], back_populates="dependencies_relations")
-    depends_on = relationship("Document", foreign_keys=[depends_on_document_id], back_populates="dependants_relations")
+    document = relationship("Document", foreign_keys=[document_id], back_populates="dependencies")
+    depends_on = relationship("Document", foreign_keys=[depends_on_document_id], back_populates="dependants")
     section = relationship("Section", foreign_keys=[section_id], back_populates="external_dependencies")
     depends_on_section = relationship("Section", foreign_keys=[depends_on_section_id], back_populates="external_dependents")
     
@@ -55,6 +55,19 @@ class Template(BaseClass):
         return f"<Template(id={self.id}, name='{self.name}')>"
     
 
+class TemplateSectionDependency(BaseClass):
+    __tablename__ = "template_section_dependency"
+
+    template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=False)
+    depends_on_template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=False)
+    
+    template_section = relationship("TemplateSection", foreign_keys=[template_section_id], back_populates="internal_dependencies")
+    depends_on_template_section = relationship("TemplateSection", foreign_keys=[depends_on_template_section_id], back_populates="internal_dependents")
+
+    def __repr__(self):
+        return f"<TemplateSectionDependency(template_section_id={self.template_section_id}, depends_on={self.depends_on_template_section_id})>"
+
+
 class TemplateSection(BaseClass):
     __tablename__ = "template_section"
     
@@ -66,9 +79,10 @@ class TemplateSection(BaseClass):
     template_id = Column(UUID(as_uuid=True), ForeignKey("template.id"), nullable=False)
     
     template = relationship("Template", back_populates="template_sections")
-    # Estas relaciones son para dependencias en plantillas
-    dependencies = relationship("InnerDependency", foreign_keys="InnerDependency.section_id", back_populates="section")
-    dependents = relationship("InnerDependency", foreign_keys="InnerDependency.depends_on_section_id", back_populates="depends_on_section")
+    
+    # Dependencias internas entre secciones de la plantilla
+    internal_dependencies = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.template_section_id", back_populates="template_section")
+    internal_dependents = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.depends_on_template_section_id", back_populates="depends_on_template_section")
     
     def __repr__(self):
         return f"<TemplateSection(id={self.id}, name='{self.name}', order={self.order})>"
@@ -86,27 +100,9 @@ class Document(BaseClass):
     executions = relationship("Execution", back_populates="document")
     sections = relationship("Section", back_populates="document")
 
-    # Renombrar para evitar confusión con las properties
-    dependencies_relations = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document")
-    dependants_relations = relationship("Dependency", foreign_keys="Dependency.depends_on_document_id", back_populates="depends_on")
-    
-    @property
-    def document_dependencies(self):
-        """Documentos de los que depende este documento (solo dependencias a nivel documento)"""
-        return [dep.depends_on for dep in self.dependencies_relations 
-                if dep.section_id is None and dep.depends_on_section_id is None]
-    
-    @property
-    def document_dependents(self):
-        """Documentos que dependen de este documento"""
-        return [dep.document for dep in self.dependants_relations
-                if dep.section_id is None and dep.depends_on_section_id is None]
-    
-    @property
-    def cross_section_dependencies(self):
-        """Dependencias específicas entre secciones de diferentes documentos"""
-        return [dep for dep in self.dependencies_relations 
-                if dep.section_id is not None or dep.depends_on_section_id is not None]
+    # Relaciones de dependencias
+    dependencies = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document")
+    dependants = relationship("Dependency", foreign_keys="Dependency.depends_on_document_id", back_populates="depends_on")
     
     def __repr__(self):
         return f"<Document(id={self.id}, name='{self.name}', template_id={self.template_id})>"
@@ -121,7 +117,6 @@ class Section(BaseClass):
     order = Column(Integer, nullable=False)
     document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
     template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=True)
-    context_dependency_id = Column(UUID(as_uuid=True), ForeignKey("dependency.id"), nullable=True)
 
     document = relationship("Document", back_populates="sections")
     

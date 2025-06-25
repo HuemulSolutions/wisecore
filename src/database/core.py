@@ -18,9 +18,17 @@ async def get_graph_session() -> AsyncGenerator[AsyncSession, None]:
     async with session() as db_session:
         yield db_session
         
+
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with session() as db_session:
-        yield db_session
+        try:
+            yield db_session
+            await db_session.commit()
+        except Exception:
+            await db_session.rollback()
+            raise
+        finally:
+            await db_session.close()
 
 async def create_database():
     async with engine.begin() as conn:

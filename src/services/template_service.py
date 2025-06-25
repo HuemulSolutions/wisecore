@@ -24,3 +24,18 @@ class TemplateService:
         new_template = Template(name=name)
         created_template = await self.template_repo.add(new_template)
         return created_template
+    
+    async def get_all_templates(self) -> list[Template]:
+        """
+        Retrieve all templates.
+        """
+        return await self.template_repo.get_all()
+    
+    async def delete_template(self, template_id: str) -> None:
+        """
+        Delete a template by its ID.
+        """
+        template = await self.template_repo.get_by_id(template_id)
+        if not template:
+            raise ValueError(f"Template with ID {template_id} not found.")
+        await self.template_repo.delete(template)

@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.repositories.document_repo import DocumentRepo
 from src.database.repositories.section_repo import SectionRepo
-from src.database.models import Document
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
@@ -33,13 +32,3 @@ class DocumentService:
         if not sections:
             raise ValueError(f"No sections found for document ID {document_id}.")
         return sections
-    
-    async def add_document_dependency(self, document_id: str, depends_on_id: str):
-        """
-        Add a dependency relationship between two documents.
-        
-        Args:
-            document_id: The ID of the document that depends on another
-            depends_on_id: The ID of the document that is depended upon
-        """
-        return await self.document_repo.add_dependency(document_id, depends_on_id)
