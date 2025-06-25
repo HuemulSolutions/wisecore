@@ -52,8 +52,16 @@ class CreateDocumentDependency(BaseModel):
     """
     Schema for creating a dependency between document sections.
     """
-    document_id: str
     depends_on_document_id: str
     section_id: Optional[str] = None
     depends_on_section_id: Optional[str] = None
     
+class CreateDocumentSection(BaseModel):
+    """
+    Schema for creating a section in a document.
+    """
+    name: str
+    order: int
+    type: Optional[str] = "text"
+    prompt: Optional[str] = None
+    content: Optional[str] = None

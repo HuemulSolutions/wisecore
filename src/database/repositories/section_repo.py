@@ -23,5 +23,24 @@ class SectionRepo(BaseRepository[Section]):
         )
         return sections.scalars().all()
     
+    async def get_by_name_and_document_id(self, name: str, document_id: str) -> Section | None:
+        result = await self.session.execute(
+            select(Section).where(
+                Section.name == name,
+                Section.document_id == document_id
+            )
+        )
+        return result.scalar_one_or_none()
+    
+    
+    async def get_by_order_and_document_id(self, order: int, document_id: str) -> Section | None:
+        result = await self.session.execute(
+            select(Section).where(
+                Section.order == order,
+                Section.document_id == document_id
+            )
+        )
+        return result.scalar_one_or_none()
+    
     
         

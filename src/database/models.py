@@ -113,7 +113,7 @@ class Section(BaseClass):
     
     name = Column(String, nullable=False)
     type = Column(String, nullable=True) # por si se añade una sección tipo imágen
-    prompt = Column(String, nullable=False)
+    prompt = Column(String, nullable=True)
     order = Column(Integer, nullable=False)
     document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
     template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=True)
