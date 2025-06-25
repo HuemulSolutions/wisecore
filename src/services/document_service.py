@@ -3,7 +3,8 @@ from src.database.repositories.document_repo import DocumentRepo
 from src.database.repositories.section_repo import SectionRepo
 from src.database.repositories.template_repo import TemplateRepo
 from src.database.repositories.inner_depend_repo import InnerDependencyRepo
-from src.database.models import Document, Section, InnerDependency
+from src.database.repositories.dependency_repo import DependencyRepo
+from src.database.models import Document, Section, InnerDependency, Dependency
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
@@ -12,6 +13,7 @@ class DocumentService:
         self.section_repo = SectionRepo(session)
         self.template_repo = TemplateRepo(session)
         self.inner_dependency_repo = InnerDependencyRepo(session)
+        self.dependency_repo = DependencyRepo(session)
 
     async def get_document_by_id(self, document_id: str):
         """
@@ -45,6 +47,9 @@ class DocumentService:
         print("Checking if template_id is provided:", template_id)
         if template_id and not await self.template_repo.get_by_id(template_id):
             raise ValueError(f"Template with ID {template_id} not found.")
+        
+        if await self.document_repo.get_by_name(name):
+            raise ValueError(f"Document with name {name} already exists.")
         
         new_document = Document(name=name, description=description, template_id=template_id)
         await self.document_repo.add(new_document)
@@ -94,4 +99,27 @@ class DocumentService:
         # Commit all changes
         await self.session.flush()
 
-
+    async def add_document_dependency(self, document_id: str, depends_on_document_id: str, 
+                                      section_id: str = None, depends_on_section_id: str  = None):
+        """
+        Add a dependency relationship between two full documents or specific sections.
+        """
+        if not await self.document_repo.get_by_id(document_id):
+            raise ValueError(f"Document with ID {document_id} not found.")
+        if not await self.document_repo.get_by_id(depends_on_document_id):
+            raise ValueError(f"Document with ID {depends_on_document_id} not found.")
+        if section_id and not await self.section_repo.get_by_id(section_id):
+            raise ValueError(f"Section with ID {section_id} not found in document {document_id}.")
+        if depends_on_section_id and not await self.section_repo.get_by_id(depends_on_section_id):
+            raise ValueError(f"Section with ID {depends_on_section_id} not found in document {depends_on_document_id}.")
+        
+        # Create the dependency
+        new_dependency = Dependency(
+            document_id=document_id,
+            section_id=section_id,
+            depends_on_document_id=depends_on_document_id,
+            depends_on_section_id=depends_on_section_id
+        )
+        await self.dependency_repo.add(new_dependency)
+        return new_dependency
+        

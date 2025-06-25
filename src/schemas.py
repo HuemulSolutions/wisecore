@@ -47,4 +47,13 @@ class CreateDocument(BaseModel):
     name: str
     description: str
     template_id: Optional[str] = None  # Optional field, can be None
+
+class CreateDocumentDependency(BaseModel):
+    """
+    Schema for creating a dependency between document sections.
+    """
+    document_id: str
+    depends_on_document_id: str
+    section_id: Optional[str] = None
+    depends_on_section_id: Optional[str] = None
     

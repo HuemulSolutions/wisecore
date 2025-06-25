@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.document_service import DocumentService
 from src.utils import get_transaction_id
-from src.schemas import ResponseSchema, CreateDocument
+from src.schemas import ResponseSchema, CreateDocument, CreateDocumentDependency
 
 router = APIRouter(prefix="/documents")
 
@@ -120,9 +120,8 @@ async def get_document_sections(document_id: str,
                     "error": f"An error occurred while retrieving sections for document ID {document_id}: {str(e)}"}
         )
         
-@router.post("/{document_id}/dependencies/{depends_on_id}")
-async def add_document_dependency(document_id: str,
-                                  depends_on_id: str,
+@router.post("/add-dependency")
+async def add_document_dependency(document_dependency: CreateDocumentDependency,
                                   session: Session = Depends(get_session),
                                   transaction_id: str = Depends(get_transaction_id)):
     """
@@ -134,7 +133,12 @@ async def add_document_dependency(document_id: str,
     """
     document_service = DocumentService(session)
     try:
-        updated_document = await document_service.add_document_dependency(document_id, depends_on_id)
+        updated_document = await document_service.add_document_dependency(
+            document_id=document_dependency.document_id,
+            depends_on_document_id=document_dependency.depends_on_document_id,
+            section_id=document_dependency.section_id,
+            depends_on_section_id=document_dependency.depends_on_section_id
+        )
         return ResponseSchema(
             transaction_id=transaction_id,
             data=jsonable_encoder(updated_document)

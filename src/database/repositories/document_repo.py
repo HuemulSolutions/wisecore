@@ -23,4 +23,11 @@ class DocumentRepo(BaseRepository[Document]):
             for doc in documents
         ]
     
+    async def get_by_name(self, name: str) -> Document:
+        """
+        Retrieve a document by its name.
+        """
+        query = select(self.model).where(self.model.name == name)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
     
