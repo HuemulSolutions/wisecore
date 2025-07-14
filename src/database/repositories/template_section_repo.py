@@ -91,6 +91,22 @@ class TemplateSectionRepo(BaseRepository[TemplateSection]):
         
         return False
     
+    
+    async def add(self, section: TemplateSection, dependencies: list[str]) -> TemplateSection:
+        self.session.add(section)
+        await self.session.flush()
+        
+        # Agregar las dependencias internas
+        for depends_on_id in dependencies:
+            try:
+                await self.add_dependency(section.id, depends_on_id)
+            except ValueError as e:
+                # Si hay un error al agregar la dependencia, revertir la transacción
+                await self.session.rollback()
+                raise e
+        return section
+        
+    
     async def add_dependency(self, section_id: str, depends_on_id: str) -> TemplateSectionDependency:
         """
         Add a dependency relationship between two template sections.

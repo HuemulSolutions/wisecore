@@ -21,6 +21,7 @@ class CreateTemplate(BaseModel):
     Schema for creating a template.
     """
     name: str
+    description: Optional[str] = None  # Optional field, can be None
     
 class CreateTemplateSection(BaseModel):
     """
@@ -28,8 +29,8 @@ class CreateTemplateSection(BaseModel):
     """
     name: str
     template_id: str
-    order: int
     prompt: str
+    dependencies: Optional[List[str]] = None  # Optional field, can be None
     type: str = "text"  # Optional field, can be None
     
     

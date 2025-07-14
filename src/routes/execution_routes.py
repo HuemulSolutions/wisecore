@@ -9,26 +9,60 @@ from src.utils import get_transaction_id
 
 router = APIRouter(prefix="/execution")
 
-@router.get("/{document_id}")
-async def get_executions_by_doc_id(document_id: str,
-                                   session: Session = Depends(get_session),
-                                   transaction_id: str = Depends(get_transaction_id)):
+@router.get("/{execution_id}")
+async def get_execution(execution_id: str, 
+                        session: Session = Depends(get_session), 
+                        transaction_id: str = Depends(get_transaction_id)):
     """
-    Retrieve all executions.
+    Retrieve an execution by its ID.
+    """
+    execution_service = ExecutionService(session)
+    try:
+        execution = await execution_service.get_execution(execution_id)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(execution)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id, 
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id, 
+                    "error": f"An error occurred while retrieving the execution: {str(e)}"}
+        )
+        
+@router.post("/{document_id}")
+async def create_execution(document_id: str, 
+                           session: Session = Depends(get_session),
+                           transaction_id: str = Depends(get_transaction_id)):
+    """
+    Create a new execution for a document.
     """
     try:
         execution_service = ExecutionService(session)
-        executions = await execution_service.execution_repo.get_executions_by_doc_id(document_id)
+        execution = await execution_service.create_execution(document_id)
         
         return ResponseSchema(
             transaction_id=transaction_id,
-            data=jsonable_encoder(executions)
+            data=jsonable_encoder(execution)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
         )
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail={"transaction_id": transaction_id,
-                    "error": f"An error occurred while retrieving executions: {str(e)}"}
+                    "error": f"An error occurred while creating the execution: {str(e)}"}
         )
 
 @router.get("/status/{execution_id}")

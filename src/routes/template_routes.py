@@ -69,7 +69,8 @@ async def create_template(template: CreateTemplate,
     """
     template_service = TemplateService(session)
     try:
-        template = await template_service.create_template(template.name)
+        template = await template_service.create_template(template.name, 
+                                                          description=template.description)
         response = ResponseSchema(
             transaction_id=transaction_id,
             data=jsonable_encoder(template)
@@ -122,9 +123,9 @@ async def create_template_section(template_section: CreateTemplateSection,
         created_section = await template_section_service.create_template_section(
             name=template_section.name,
             template_id=template_section.template_id,
-            order=template_section.order,
             prompt=template_section.prompt,
-            type=template_section.type
+            type=template_section.type,
+            dependencies=template_section.dependencies or []
         )
         response = ResponseSchema(
             transaction_id=transaction_id,

@@ -17,11 +17,14 @@ class TemplateService:
         return template
     
 
-    async def create_template(self, name: str) -> Template:
+    async def create_template(self, name: str, description: str) -> Template:
         """
         Create a new template.
         """
-        new_template = Template(name=name)
+        template = await self.template_repo.get_by_name(name)
+        if template:
+            raise ValueError(f"Template with name {name} already exists.")
+        new_template = Template(name=name, description=description)
         created_template = await self.template_repo.add(new_template)
         return created_template
     

@@ -40,8 +40,6 @@ class DocumentService:
         Retrieve all sections for a specific document.
         """
         sections = await self.section_repo.get_sections_by_doc_id(document_id)
-        if not sections:
-            raise ValueError(f"No sections found for document ID {document_id}.")
         return sections
     
     async def create_document(self, name: str, description: str, template_id: str = None):

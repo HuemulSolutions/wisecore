@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.document_service import DocumentService
+from src.services.execution_service import ExecutionService
 from src.utils import get_transaction_id
 from src.schemas import (ResponseSchema, CreateDocument, 
                          CreateDocumentDependency, CreateDocumentSection)
@@ -191,4 +192,32 @@ async def create_document_section(document_id: str,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while creating the section: {str(e)}"}
+        )
+        
+@router.get("/{document_id}/executions")
+async def get_executions_by_doc_id(document_id: str,
+                                   session: Session = Depends(get_session),
+                                   transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all executions for a document.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        executions = await execution_service.get_executions_by_doc_id(document_id)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(executions)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving executions: {str(e)}"}
         )

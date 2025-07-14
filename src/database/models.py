@@ -48,6 +48,7 @@ class Template(BaseClass):
     __tablename__ = "template"
     
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     template_sections = relationship("TemplateSection", back_populates="template")
     documents = relationship("Document", back_populates="template")
     
@@ -177,6 +178,7 @@ class SectionExecution(BaseClass):
     __tablename__ = "section_execution"
 
     user_instruction = Column(String, nullable=True)
+    prompt = Column(String, nullable=True)
     output = Column(String, nullable=True)
     custom_output = Column(String, nullable=True)
     is_locked = Column(Boolean, default=False, nullable=False)
