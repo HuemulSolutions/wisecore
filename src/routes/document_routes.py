@@ -1,12 +1,16 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.document_service import DocumentService
 from src.services.execution_service import ExecutionService
+from src.services.context_service import ContextService
+from src.services.dependency_service import DependencyService
+from src.services.document_section_service import SectionService
 from src.utils import get_transaction_id
 from src.schemas import (ResponseSchema, CreateDocument, 
-                         CreateDocumentDependency, CreateDocumentSection)
+                         CreateDocumentDependency, CreateDocumentSection,
+                         AddDocumentContextText)
 
 router = APIRouter(prefix="/documents")
 
@@ -122,6 +126,35 @@ async def get_document_sections(document_id: str,
                     "error": f"An error occurred while retrieving sections for document ID {document_id}: {str(e)}"}
         )
         
+        
+@router.get("/{document_id}/dependencies")
+async def get_document_dependencies(document_id: str,
+                                    session: Session = Depends(get_session),
+                                    transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all dependencies for a specific document.
+    """
+    document_service = DependencyService(session)
+    try:
+        dependencies = await document_service.get_document_dependencies(document_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(dependencies)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving dependencies for document ID {document_id}: {str(e)}"}
+        )
+        
+        
 @router.post("/{document_id}/dependencies")
 async def add_document_dependency(document_id: str,
                                   document_dependency: CreateDocumentDependency,
@@ -134,7 +167,7 @@ async def add_document_dependency(document_id: str,
         document_id: The ID of the document that depends on another
         depends_on_id: The ID of the document that is depended upon
     """
-    document_service = DocumentService(session)
+    document_service = DependencyService(session)
     try:
         dependency = await document_service.add_document_dependency(
             document_id=document_id,
@@ -159,23 +192,80 @@ async def add_document_dependency(document_id: str,
                     "error": f"An error occurred while adding dependency: {str(e)}"}
         )
         
-@router.post("/{document_id}/sections")
-async def create_document_section(document_id: str,
-                                  section: CreateDocumentSection,
+@router.delete("/{document_id}/dependencies/{dependency_id}")
+async def delete_document_dependency(document_id: str,
+                                     dependency_id: str,
+                                     session: Session = Depends(get_session),
+                                     transaction_id: str = Depends(get_transaction_id)):
+    """
+    Delete a dependency relationship between two documents.
+    
+    Args:
+        document_id: The ID of the document that has the dependency
+        dependency_id: The ID of the dependency to be deleted
+    """
+    dependency_service = DependencyService(session)
+    try:
+        await dependency_service.delete_document_dependency(document_id, dependency_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data={"message": "Dependency deleted successfully"}
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while deleting dependency: {str(e)}"}
+        )
+        
+@router.get("/{document_id}/context")
+async def get_document_context(document_id: str,
+                                 session: Session = Depends(get_session),
+                                 transaction_id: str = Depends(get_transaction_id)):
+     """
+     Retrieve all context for a specific document.
+     """
+     context_service = ContextService(session)
+     try:
+          context = await context_service.get_context_by_document_id(document_id)
+          return ResponseSchema(
+                transaction_id=transaction_id,
+                data=jsonable_encoder(context)
+          )
+     except ValueError as e:
+          raise HTTPException(
+                status_code=404,
+                detail={"transaction_id": transaction_id,
+                      "error": str(e)}
+          )
+     except Exception as e:
+          raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                      "error": f"An error occurred while retrieving context for document ID {document_id}: {str(e)}"}
+          )
+        
+@router.post("/sections")
+async def create_document_section(section: CreateDocumentSection,
                                   session: Session = Depends(get_session),
                                   transaction_id: str = Depends(get_transaction_id)):
     """
     Create a new section in a document.
     """
-    document_service = DocumentService(session)
+    section_service = SectionService(session)
     try:
-        new_section = await document_service.create_document_section(
-            document_id=document_id,
+        new_section = await section_service.create_section(
+            document_id=section.document_id,
             name=section.name,
-            order=section.order,
             type=section.type,
             prompt=section.prompt,
-            content=section.content
+            dependencies=section.dependencies or []
         )
         return ResponseSchema(
             transaction_id=transaction_id,
@@ -221,3 +311,67 @@ async def get_executions_by_doc_id(document_id: str,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while retrieving executions: {str(e)}"}
         )
+        
+        
+@router.post("/{document_id}/add_context_text")
+async def add_context_to_document(document_id: str,
+                                    context: AddDocumentContextText,
+                                    session: Session = Depends(get_session),
+                                    transaction_id: str = Depends(get_transaction_id)):
+    """ Add context text to a document.
+    """
+    context_service = ContextService(session)
+    try:
+        new_context = await context_service.add_context_to_document(
+            document_id=document_id,
+            name=context.name,
+            content=context.content
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(new_context)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while adding context to the document: {str(e)}"}
+        )
+        
+@router.post("/{document_id}/add_context_file")
+async def add_context_file_to_document(document_id: str,
+                                        file: UploadFile = File(...),
+                                        session: Session = Depends(get_session),
+                                        transaction_id: str = Depends(get_transaction_id)):
+     """
+     Add context file to a document.
+     """
+     context_service = ContextService(session)
+     try:
+          new_context = await context_service.add_context_to_document(
+                document_id=document_id,
+                name=file.filename,
+                file=file
+          )
+          return ResponseSchema(
+                transaction_id=transaction_id,
+                data=jsonable_encoder(new_context)
+          )
+     except ValueError as e:
+          raise HTTPException(
+                status_code=400,
+                detail={"transaction_id": transaction_id,
+                      "error": str(e)}
+          )
+     except Exception as e:
+          raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                      "error": f"An error occurred while adding context file to the document: {str(e)}"}
+          )

@@ -104,9 +104,22 @@ class Document(BaseClass):
     # Relaciones de dependencias
     dependencies = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document")
     dependants = relationship("Dependency", foreign_keys="Dependency.depends_on_document_id", back_populates="depends_on")
+    contexts = relationship("Context", back_populates="document")
     
     def __repr__(self):
         return f"<Document(id={self.id}, name='{self.name}', template_id={self.template_id})>"
+    
+    
+class Context(BaseClass):
+    __tablename__ = "context"
+    
+    name = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
+    document = relationship("Document", back_populates="contexts")
+    
+    def __repr__(self):
+        return f"<Context(id={self.id}, name='{self.name}', document_id={self.document_id})>"
     
     
 class Section(BaseClass):

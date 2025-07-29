@@ -6,8 +6,14 @@ from src.database.repositories.inner_depend_repo import InnerDependencyRepo
 from src.database.repositories.dependency_repo import DependencyRepo
 from src.database.repositories.execution_repo import ExecutionRepo
 from src.database.repositories.sectionexec_repo import SectionExecRepo
+from src.database.repositories.context_repo import ContextRepo
 from src.database.models import (Document, Section, InnerDependency, 
-                                 Dependency, Execution, Status, SectionExecution)
+                                 Dependency, Execution, Status, SectionExecution,
+                                 Context)
+from fastapi import File, UploadFile
+import io
+from docx import Document as DocxDocument
+from PyPDF2 import PdfReader
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
@@ -18,6 +24,7 @@ class DocumentService:
         self.inner_dependency_repo = InnerDependencyRepo(session)
         self.dependency_repo = DependencyRepo(session)
         self.execution_repo = ExecutionRepo(session)
+        self.context_repo = ContextRepo(session)
 
     async def get_document_by_id(self, document_id: str):
         """
@@ -100,36 +107,6 @@ class DocumentService:
         
         # Commit all changes
         await self.session.flush()
-        
-    async def create_document_section(self, document_id: str, name: str, order: int,
-                                      type: str, prompt: str = None, content: str = None):
-        """
-        Create a new section in a document.
-        """
-        if not await self.document_repo.get_by_id(document_id):
-            raise ValueError(f"Document with ID {document_id} not found.")
-        if await self.section_repo.get_by_name_and_document_id(name, document_id):
-            raise ValueError(f"Section with name {name} already exists in document ID {document_id}.")
-        if await self.section_repo.get_by_order_and_document_id(order, document_id):
-            raise ValueError(f"Section with order {order} already exists in document ID {document_id}.")
-        
-        new_section = Section(
-            name=name,
-            order=order,
-            type=type,
-            prompt=prompt,
-            document_id=document_id
-        )
-        new_section = await self.section_repo.add(new_section)
-        if content:
-            execution = await self._create_or_get_execution_for_content(document_id)
-            new_section_execution = SectionExecution(
-                section_id=new_section.id,
-                execution_id=execution.id,
-                output=content
-            )
-            await self.section_repo.add(new_section_execution)
-        return new_section
                 
             
     async def _create_or_get_execution_for_content(self, document_id: str):
@@ -144,30 +121,6 @@ class DocumentService:
         )
         new_execution = await self.execution_repo.add(new_execution)
         return new_execution
-            
-        
-
-    async def add_document_dependency(self, document_id: str, depends_on_document_id: str, 
-                                      section_id: str = None, depends_on_section_id: str  = None):
-        """
-        Add a dependency relationship between two full documents or specific sections.
-        """
-        if not await self.document_repo.get_by_id(document_id):
-            raise ValueError(f"Document with ID {document_id} not found.")
-        if not await self.document_repo.get_by_id(depends_on_document_id):
-            raise ValueError(f"Document with ID {depends_on_document_id} not found.")
-        if section_id and not await self.section_repo.get_by_id(section_id):
-            raise ValueError(f"Section with ID {section_id} not found in document {document_id}.")
-        if depends_on_section_id and not await self.section_repo.get_by_id(depends_on_section_id):
-            raise ValueError(f"Section with ID {depends_on_section_id} not found in document {depends_on_document_id}.")
-        
-        # Create the dependency
-        new_dependency = Dependency(
-            document_id=document_id,
-            section_id=section_id,
-            depends_on_document_id=depends_on_document_id,
-            depends_on_section_id=depends_on_section_id
-        )
-        await self.dependency_repo.add(new_dependency)
-        return new_dependency
-        
+    
+    
+    

@@ -1,6 +1,6 @@
 from .base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models import Document, Dependency
+from ..models import Document, InnerDependency, Section
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
@@ -69,3 +69,20 @@ class DocumentRepo(BaseRepository[Document]):
                 for execution in doc.executions
             ]
         }
+    
+    async def get_document(self, document_id: UUID) -> Document:
+        """
+        Retrieve a document by its ID with sections and dependencies.
+        """
+        query = (
+            select(self.model)
+            .options(
+                selectinload(Document.sections)
+                .selectinload(Section.internal_dependencies)
+                .selectinload(InnerDependency.depends_on_section_id)
+            )
+            .where(self.model.id == document_id)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+    

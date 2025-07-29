@@ -59,10 +59,17 @@ class CreateDocumentDependency(BaseModel):
     
 class CreateDocumentSection(BaseModel):
     """
-    Schema for creating a section in a document.
+    Schema for creating a template section.
     """
     name: str
-    order: int
-    type: Optional[str] = "text"
-    prompt: Optional[str] = None
-    content: Optional[str] = None
+    document_id: str
+    prompt: str
+    dependencies: Optional[List[str]] = None  # Optional field, can be None
+    type: str = "text"  # Optional field, can be None
+    
+class AddDocumentContextText(BaseModel):
+    """
+    Schema for adding context text to a document.
+    """
+    name: str
+    content: str

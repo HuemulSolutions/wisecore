@@ -47,4 +47,117 @@ class SectionRepo(BaseRepository[Section]):
         return result.scalar_one_or_none()
     
     
+    async def _has_circular_dependency(self, section_id: str, depends_on_id: str) -> bool:
+        """
+        Verifica si agregar una dependencia crearía una dependencia circular.
+        
+        Args:
+            section_id: ID de la sección que dependerá de otra
+            depends_on_id: ID de la sección de la cual dependerá
+            
+        Returns:
+            True si se detecta una dependencia circular, False en caso contrario
+        """
+        # Si una sección depende de sí misma, es circular
+        print(f"Checking circular dependency for section {section_id} depends on {depends_on_id}")
+        if str(section_id) == str(depends_on_id):
+            return True
+        
+        # Verificar si depends_on_id ya depende (directa o indirectamente) de section_id
+        # Esto detectaría una dependencia circular
+        return await self._section_depends_on(depends_on_id, section_id, set())
+    
+    async def _section_depends_on(self, section_id: str, target_id: str, visited: set) -> bool:
+        """
+        Verifica recursivamente si section_id depende de target_id.
+        
+        Args:
+            section_id: ID de la sección a verificar
+            target_id: ID de la sección objetivo
+            visited: Set de IDs ya visitados para evitar bucles infinitos
+            
+        Returns:
+            True si section_id depende de target_id, False en caso contrario
+        """
+        if section_id in visited:
+            return False
+        
+        visited.add(section_id)
+        
+        # Obtener todas las dependencias de section_id
+        query = select(InnerDependency).where(
+            InnerDependency.section_id == section_id
+        )
+        result = await self.session.execute(query)
+        dependencies = result.scalars().all()
+        
+        for dependency in dependencies:
+            # Si esta sección depende directamente del target, hay dependencia circular
+            
+            if str(dependency.depends_on_section_id) == str(target_id):
+                return True
+            
+            # Verificar recursivamente las dependencias de esta dependencia
+            if await self._section_depends_on(dependency.depends_on_section_id, target_id, visited.copy()):
+                return True
+        
+        return False
+    
+    async def add(self, section: Section, dependencies: list[str]) -> Section:
+        self.session.add(section)
+        await self.session.flush()
+        
+        # Agregar las dependencias internas
+        for depends_on_id in dependencies:
+            try:
+                await self.add_dependency(section.id, depends_on_id)
+            except ValueError as e:
+                # Si hay un error al agregar la dependencia, revertir la transacción
+                await self.session.rollback()
+                raise e
+        return section
+    
+    async def add_dependency(self, section_id: str, depends_on_id: str) -> InnerDependency:
+        """
+        Add a dependency relationship between two template sections.
+        Verifica que no se creen dependencias circulares.
+        """
+        # Verificar que ambas secciones existan
+        section = await self.get_by_id(section_id)
+        depends_on_section = await self.get_by_id(depends_on_id)
+        
+        if not section:
+            raise ValueError(f"Section with ID {section_id} not found.")
+        if not depends_on_section:
+            raise ValueError(f"Section with ID {depends_on_id} not found.")
+        
+        # Verificar si la dependencia ya existe
+        existing_query = select(InnerDependency).where(
+            InnerDependency.section_id == section_id,
+            InnerDependency.depends_on_section_id == depends_on_id
+        )
+        existing_result = await self.session.execute(existing_query)
+        existing_dependency = existing_result.scalar_one_or_none()
+        
+        if existing_dependency:
+            raise ValueError(f"Dependency between sections {section_id} and {depends_on_id} already exists.")
+        
+        # Verificar dependencia circular antes de crear la relación
+        if await self._has_circular_dependency(section_id, depends_on_id):
+            raise ValueError(
+                f"No se puede crear la dependencia: esto generaría una dependencia circular entre las secciones {section_id} y {depends_on_id}"
+            )
+        
+        print(f"Adding dependency from section {section_id} to {depends_on_id}")
+        
+        # Crear la nueva dependencia
+        new_dependency = InnerDependency(
+            section_id=section_id,
+            depends_on_section_id=depends_on_id
+        )
+        
+        self.session.add(new_dependency)
+        return new_dependency
+    
+    
         
