@@ -27,6 +27,33 @@ class SectionRepo(BaseRepository[Section]):
             
         return sections
     
+    async def get_sections_by_doc_id_graph(self, document_id: str) -> list[Section]:
+        sections = await self.session.execute(
+            select(Section)
+            .options(selectinload(Section.internal_dependencies)
+                .selectinload(InnerDependency.depends_on_section))
+            .where(Section.document_id == document_id)
+            .order_by(Section.order)
+        )
+        sections = sections.scalars().all()
+        
+        # Procesar las dependencias para cada sección
+        if sections:
+            for section in sections:
+                # Crear lista de dependencias con id y nombre
+                dependencies = [
+                    {
+                        'id': str(dep.depends_on_section.id),
+                        'name': dep.depends_on_section.name
+                    }
+                    for dep in section.internal_dependencies
+                ]
+                section.dependencies = dependencies
+        else:
+            sections = None
+        
+        return sections
+    
     async def get_by_name_and_document_id(self, name: str, document_id: str) -> Section | None:
         result = await self.session.execute(
             select(Section).where(

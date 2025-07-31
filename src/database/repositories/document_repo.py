@@ -42,6 +42,8 @@ class DocumentRepo(BaseRepository[Document]):
                 selectinload(Document.template),
                 selectinload(Document.executions),
                 selectinload(Document.sections)
+                .selectinload(Section.internal_dependencies)
+                .selectinload(InnerDependency.depends_on_section)
             )
             .where(self.model.id == document_id)
         )
@@ -67,6 +69,18 @@ class DocumentRepo(BaseRepository[Document]):
                     "created_at": execution.created_at,
                 }
                 for execution in doc.executions
+            ],
+            "sections": [
+                {
+                    "id": section.id,
+                    "name": section.name,
+                    "prompt": section.prompt,
+                    "order": section.order,
+                    "dependencies": [
+                       dep for dep in section.internal_dependencies
+                    ]
+                }
+                for section in doc.sections
             ]
         }
     
@@ -79,10 +93,75 @@ class DocumentRepo(BaseRepository[Document]):
             .options(
                 selectinload(Document.sections)
                 .selectinload(Section.internal_dependencies)
-                .selectinload(InnerDependency.depends_on_section_id)
+                .selectinload(InnerDependency.depends_on_section)
             )
             .where(self.model.id == document_id)
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+    
+    async def get_document_content(self, document_id: UUID) -> str:
+        """
+        Retrieve the content of a document by its ID.
+        """
+        query = (
+            select(self.model)
+            .options(
+                selectinload(Document.sections)
+                .selectinload(Section.section_executions)
+            )
+            .where(self.model.id == document_id)
+        )
+        result = await self.session.execute(query)
+        document = result.scalar_one_or_none()
+        
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        
+        content = f"# Document {document.name}\n\n"
+        for section in document.sections:
+            # Get the latest section execution output
+            latest_execution = None
+            if section.section_executions:
+                latest_execution = max(section.section_executions, key=lambda x: x.created_at)
+            
+            # section_content = latest_execution.custom_output if latest_execution and latest_execution.custom_output else latest_execution.output if latest_execution else section.output
+            section_content = None
+            if latest_execution:
+                if latest_execution.custom_output:
+                    section_content = latest_execution.custom_output
+                elif latest_execution.output:
+                    section_content = latest_execution.output
+                content += f"{section_content}\n\n"
+        return content
+    
+    async def get_document_context(self, document_id: UUID) -> str:
+        """
+        Retrieve the document context and  external dependencies.
+        """
+        query = (
+            select(self.model)
+            .options(
+                selectinload(Document.contexts),
+                selectinload(Document.dependencies)
+            )
+            .where(self.model.id == document_id)
+        )
+        result = await self.session.execute(query)
+        document = result.scalar_one_or_none()
+        
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        
+        context_str = ""
+        for context in document.contexts:
+            context_str += f"# {context.name}\n\n {context.content}\n"
+        
+        for dependency in document.dependencies:
+            dependency_content = await self.get_document_content(dependency.depends_on_document_id)
+            context_str += f"{dependency_content}\n"
+        return context_str
+                
+        
+        
     

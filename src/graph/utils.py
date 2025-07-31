@@ -1,14 +1,14 @@
 from collections import deque
+from rich import print
 
 def topological_sort(sections):
+    print(sections)
     graph     = {sec.id: [] for sec in sections}
     in_degree = {sec.id: 0  for sec in sections}
 
     for sec in sections:
         for d in sec.dependencies:
-            if d.type.value == "knowledge":
-                continue
-            dep_id = d.id
+            dep_id = d["id"]
             if dep_id in graph:
                 graph[dep_id].append(sec.id)
                 in_degree[sec.id] += 1

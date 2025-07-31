@@ -14,6 +14,8 @@ class GenerateDocument(BaseModel):
     Schema for generating a document.
     """
     document_id: str
+    execution_id: str
+    instructions: Optional[str] = None
     
     
 class CreateTemplate(BaseModel):

@@ -19,4 +19,16 @@ async def stream_generation(request: GenerateDocument):
             status_code=500,
             detail=f"An error occurred while streaming the generation: {str(e)}"
         )
-    
+        
+        
+@router.post("/generate_document")
+async def generate_document(request: GenerateDocument):
+    try:
+        return StreamingResponse(
+            stream_graph(request.document_id, request.execution_id, request.instructions),
+            media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while generating the document: {str(e)}"
+        )

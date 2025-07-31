@@ -15,8 +15,15 @@ session = sessionmaker(
 
 @asynccontextmanager
 async def get_graph_session() -> AsyncGenerator[AsyncSession, None]:
-    async with session() as db_session:
+    db_session = session()
+    try:
         yield db_session
+        await db_session.commit()
+    except:
+        await db_session.rollback()
+        raise
+    finally:
+        await db_session.close()
         
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

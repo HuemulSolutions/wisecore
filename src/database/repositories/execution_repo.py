@@ -2,7 +2,7 @@ from .base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
-from ..models import Execution
+from ..models import Execution, Status
 
 class ExecutionRepo(BaseRepository[Execution]):
     def __init__(self, session: AsyncSession):
@@ -34,23 +34,60 @@ class ExecutionRepo(BaseRepository[Execution]):
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         
-        result_dict = {
-            "id": execution.id,
-            "document_id": execution.document_id,
-            "status": execution.status,
-            "created_at": execution.created_at,
-            "updated_at": execution.updated_at,
-            "document_name": execution.document.name,
-            "sections_executions": [{
-                "id": section_exec.section.id,
-                "output": section_exec.output,
-                "custom_output": section_exec.custom_output,
-            } for section_exec in execution.sections_executions],
-            "sections": [{
-                "id": section.id,
-                "name": section.name,
-                "prompt": section.prompt,
-            } for section in execution.document.sections]
-            
-        }
+        if execution.status == Status.PENDING:
+            result_dict = {
+                "id": execution.id,
+                "document_id": execution.document_id,
+                "status": execution.status,
+                "created_at": execution.created_at,
+                "updated_at": execution.updated_at,
+                "document_name": execution.document.name,
+                "instruction": execution.user_instruction,
+                "sections": [{
+                    "id": section.id,
+                    "name": section.name,
+                    "prompt": section.prompt,
+                    "output": "",
+                } for section in execution.document.sections]
+            }
+        else:
+            result_dict = {
+                "id": execution.id,
+                "document_id": execution.document_id,
+                "status": execution.status,
+                "status_message": execution.status_message,
+                "created_at": execution.created_at,
+                "updated_at": execution.updated_at,
+                "document_name": execution.document.name,
+                "instruction": execution.user_instruction,
+                "sections": [{
+                    "id": section_exec.section.id,
+                    "name": section_exec.section.name,
+                    "prompt": section_exec.section.prompt,
+                    "output": section_exec.output if section_exec.output else None,
+                } for section_exec in execution.sections_executions]
+            }
         return result_dict
+    
+    async def get_execution(self, execution_id: str) -> Execution:
+        """
+        Retrieve an execution by its ID.
+        """
+        query = select(self.model).where(self.model.id == execution_id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+    
+    async def update_status(self, execution_id: str, status: Status, message: str, instructions: str = None) -> Execution:
+        """
+        Update the status of an execution.
+        """
+        execution = await self.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        
+        execution.status = status
+        execution.status_message = message
+        if instructions:
+            execution.user_instruction = instructions
+        await self.session.flush()
+        return execution
