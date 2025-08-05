@@ -26,7 +26,7 @@ class ExecutionService:
         """
         executions = await self.execution_repo.get_executions_by_doc_id(document_id)
         if not executions:
-            raise ValueError("No executions found.")
+            return []
         return executions
     
     async def create_execution(self, document_id: str):

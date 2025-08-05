@@ -35,6 +35,7 @@ class ExecutionRepo(BaseRepository[Execution]):
             raise ValueError(f"Execution with ID {execution_id} not found.")
         
         if execution.status == Status.PENDING:
+            sorted_sections = sorted(execution.document.sections, key=lambda s: s.order)
             result_dict = {
                 "id": execution.id,
                 "document_id": execution.document_id,
@@ -48,9 +49,10 @@ class ExecutionRepo(BaseRepository[Execution]):
                     "name": section.name,
                     "prompt": section.prompt,
                     "output": "",
-                } for section in execution.document.sections]
+                } for section in sorted_sections]
             }
         else:
+            sorted_section_executions = sorted(execution.sections_executions, key=lambda se: se.order)
             result_dict = {
                 "id": execution.id,
                 "document_id": execution.document_id,
@@ -65,7 +67,7 @@ class ExecutionRepo(BaseRepository[Execution]):
                     "name": section_exec.section.name,
                     "prompt": section_exec.section.prompt,
                     "output": section_exec.output if section_exec.output else None,
-                } for section_exec in execution.sections_executions]
+                } for section_exec in sorted_section_executions]
             }
         return result_dict
     

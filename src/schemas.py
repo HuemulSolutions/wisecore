@@ -49,6 +49,7 @@ class CreateDocument(BaseModel):
     """
     name: str
     description: str
+    organization_id: str
     template_id: Optional[str] = None  # Optional field, can be None
 
 class CreateDocumentDependency(BaseModel):

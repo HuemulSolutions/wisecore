@@ -48,9 +48,9 @@ def test_stream_graph():
     import asyncio
 
     async def test():
-        state = State(document_id="07bf9e5c-62e9-46a2-b5a3-c0f80f346c44",
-                      execution_id="6209ccb1-543f-4d15-adb4-e7cd03ca8e9c")
-        async for event in stream_graph(state):
+        async for event in stream_graph(document_id="07bf9e5c-62e9-46a2-b5a3-c0f80f346c44",
+                                        execution_id="6209ccb1-543f-4d15-adb4-e7cd03ca8e9c",
+                                        user_instructions="Escribe el documento en inglés"):
             print(event)
     asyncio.run(test())
 if __name__ == "__main__":

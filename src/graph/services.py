@@ -86,7 +86,7 @@ class GraphServices():
         await self.execution_repo.add(execution)
         return execution
         
-    async def save_section_execution(self, section_id: str, execution_id: str, output: str, prompt: str) -> SectionExecution:
+    async def save_section_execution(self, section_id: str, execution_id: str, output: str, prompt: str, order: int) -> SectionExecution:
         """
         Save the section execution to the database.
         """
@@ -95,7 +95,8 @@ class GraphServices():
             execution_id=execution_id,
             output=output,
             custom_output=None,
-            prompt=prompt
+            prompt=prompt,
+            order=order
         )
         await self.section_exec_repo.add(new_section_execution)
         return new_section_execution

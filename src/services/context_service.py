@@ -52,3 +52,14 @@ class ContextService:
         
         new_context = await self.context_repo.add(new_context)
         return new_context
+    
+    async def delete_context(self, context_id: str):
+        """
+        Delete a context by its ID.
+        """
+        context = await self.context_repo.get_by_id(context_id)
+        if not context:
+            raise ValueError(f"Context with ID {context_id} not found.")
+        
+        await self.context_repo.delete(context)
+        return {"message": "Context deleted successfully."}

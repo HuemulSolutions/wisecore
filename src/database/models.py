@@ -15,6 +15,19 @@ class BaseClass(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+    
+
+class Organization(BaseClass):
+    __tablename__ = "organization"
+    
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    
+    documents = relationship("Document", back_populates="organization")
+    templates = relationship("Template", back_populates="organization")
+    
+    def __repr__(self):
+        return f"<Organization(id={self.id}, name='{self.name}')>"
 
 
 class Dependency(BaseClass):
@@ -49,7 +62,9 @@ class Template(BaseClass):
     
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
     template_sections = relationship("TemplateSection", back_populates="template")
+    organization = relationship("Organization", back_populates="templates")
     documents = relationship("Document", back_populates="template")
     
     def __repr__(self):
@@ -95,15 +110,17 @@ class Document(BaseClass):
     
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
     template_id = Column(UUID(as_uuid=True), ForeignKey("template.id"), nullable=True)
     
+    organization = relationship("Organization", back_populates="documents")
     template = relationship("Template", back_populates="documents")
     executions = relationship("Execution", back_populates="document")
-    sections = relationship("Section", back_populates="document")
+    sections = relationship("Section", back_populates="document", cascade="all, delete-orphan")
 
     # Relaciones de dependencias
-    dependencies = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document")
-    dependants = relationship("Dependency", foreign_keys="Dependency.depends_on_document_id", back_populates="depends_on")
+    dependencies = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document", cascade="all, delete-orphan")
+    dependants = relationship("Dependency", foreign_keys="Dependency.depends_on_document_id", back_populates="depends_on", cascade="all, delete-orphan")
     contexts = relationship("Context", back_populates="document")
     
     def __repr__(self):
@@ -135,8 +152,8 @@ class Section(BaseClass):
     document = relationship("Document", back_populates="sections")
     
     # Dependencias internas (mismo documento)
-    internal_dependencies = relationship("InnerDependency", foreign_keys="InnerDependency.section_id", back_populates="section")
-    internal_dependents = relationship("InnerDependency", foreign_keys="InnerDependency.depends_on_section_id", back_populates="depends_on_section")
+    internal_dependencies = relationship("InnerDependency", foreign_keys="InnerDependency.section_id", back_populates="section", cascade="all, delete-orphan")
+    internal_dependents = relationship("InnerDependency", foreign_keys="InnerDependency.depends_on_section_id", back_populates="depends_on_section", cascade="all, delete-orphan")
     
     # Dependencias externas (otros documentos)
     external_dependencies = relationship("Dependency", foreign_keys="Dependency.section_id", back_populates="section")
@@ -192,6 +209,7 @@ class SectionExecution(BaseClass):
 
     user_instruction = Column(String, nullable=True)
     prompt = Column(String, nullable=True)
+    order = Column(Integer, nullable=False)
     output = Column(String, nullable=True)
     custom_output = Column(String, nullable=True)
     is_locked = Column(Boolean, default=False, nullable=False)

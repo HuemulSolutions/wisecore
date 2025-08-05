@@ -42,15 +42,43 @@ async def get_document(document_id: str,
                     "error": f"An error occurred while retrieving the document: {str(e)}"}
         )
         
+@router.delete("/{document_id}")
+async def delete_document(document_id: str,
+                            session: Session = Depends(get_session),
+                            transaction_id: str = Depends(get_transaction_id)):
+        """
+        Delete a document by its ID.
+        """
+        document_service = DocumentService(session)
+        try:
+            await document_service.delete_document(document_id)
+            return ResponseSchema(
+                transaction_id=transaction_id,
+                data={"message": "Document deleted successfully"}
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=404,
+                detail={"transaction_id": transaction_id,
+                        "error": str(e)}
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                        "error": f"An error occurred while deleting the document: {str(e)}"}
+            )
+        
 @router.get("/")
-async def get_all_documents(session: Session = Depends(get_session),
+async def get_all_documents(organization_id: str = None, 
+                            session: Session = Depends(get_session),
                             transaction_id: str = Depends(get_transaction_id)):
     """
     Retrieve all documents.
     """
     document_service = DocumentService(session)
     try:
-        documents = await document_service.get_all_documents()
+        documents = await document_service.get_all_documents(organization_id)
         return ResponseSchema(
             transaction_id=transaction_id,
             data=jsonable_encoder(documents)
@@ -80,6 +108,7 @@ async def create_document(create_document: CreateDocument,
         new_document = await document_service.create_document(
             name=create_document.name,
             description=create_document.description,
+            organization_id=create_document.organization_id,
             template_id=create_document.template_id
         )
         return ResponseSchema(
@@ -375,3 +404,31 @@ async def add_context_file_to_document(document_id: str,
                 detail={"transaction_id": transaction_id,
                       "error": f"An error occurred while adding context file to the document: {str(e)}"}
           )
+          
+@router.delete("/{document_id}/context/{context_id}")
+async def delete_document_context(document_id: str,
+                                    context_id: str,
+                                    session: Session = Depends(get_session),
+                                    transaction_id: str = Depends(get_transaction_id)):
+        """
+        Delete a context from a document.
+        """
+        context_service = ContextService(session)
+        try:
+            await context_service.delete_context(context_id=context_id)
+            return ResponseSchema(
+                transaction_id=transaction_id,
+                data={"message": "Context deleted successfully"}
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=404,
+                detail={"transaction_id": transaction_id,
+                        "error": str(e)}
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                        "error": f"An error occurred while deleting context: {str(e)}"}
+            )

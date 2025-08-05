@@ -14,7 +14,7 @@ llm = get_llm("gpt-4.1")
 
 class State(TypedDict):
     document_id: str
-    execution_id: int
+    execution_id: str
     execution_instructions: Optional[str]
     document: Document
     document_context: str
@@ -181,7 +181,8 @@ async def save_section_execution(state: State, config: BaseConfig) -> State:
             section_id=section.id,
             execution_id=state['execution_id'],
             output=section.output,
-            prompt=section.prompt
+            prompt=section.prompt,
+            order=section.order
         )
 
     for section in state['sorted_sections_ids']:

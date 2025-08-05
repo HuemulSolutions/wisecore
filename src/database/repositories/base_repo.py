@@ -20,7 +20,6 @@ class BaseRepository(Generic[T]):
     
     async def delete(self, instance: T) -> None:
         await self.session.delete(instance)
-        await self.session.commit()
         
     async def get_all(self) -> list[T]:
         result = await self.session.execute(select(self.model))

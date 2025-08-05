@@ -1,6 +1,6 @@
 from .base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models import Document, InnerDependency, Section
+from ..models import Document, InnerDependency, Section, Organization
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
@@ -9,11 +9,16 @@ class DocumentRepo(BaseRepository[Document]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Document)
         
-    async def get_all_documents(self, limit: int = 100, offset: int = 0):
+    async def get_all_documents(self, organization_id: str = None, limit: int = 100, offset: int = 0):
         """
         Retrieve all documents with optional pagination, including template name.
         """
-        query = select(self.model).options(selectinload(Document.template)).limit(limit).offset(offset)
+        query = select(self.model).options(selectinload(Document.template))
+        
+        if organization_id:
+            query = query.where(self.model.organization_id == organization_id)
+            
+        query = query.order_by(self.model.created_at.desc()).limit(limit).offset(offset)
         result = await self.session.execute(query)
         documents = result.scalars().all()
         return [
@@ -39,6 +44,7 @@ class DocumentRepo(BaseRepository[Document]):
         query = (
             select(self.model)
             .options(
+                selectinload(Document.organization),
                 selectinload(Document.template),
                 selectinload(Document.executions),
                 selectinload(Document.sections)
@@ -52,11 +58,15 @@ class DocumentRepo(BaseRepository[Document]):
         
         if not doc:
             return None
+        
+        sorted_executions = sorted(doc.executions, key=lambda e: e.created_at, reverse=True)
             
         return {
             "id": doc.id,
             "name": doc.name,
             "description": doc.description,
+            "organization_id": doc.organization_id,
+            "organization": doc.organization.name,
             "template_id": doc.template_id,
             "template_name": doc.template.name if doc.template else None,
             "created_at": doc.created_at,
@@ -68,7 +78,7 @@ class DocumentRepo(BaseRepository[Document]):
                     "status_message": execution.status_message,
                     "created_at": execution.created_at,
                 }
-                for execution in doc.executions
+                for execution in sorted_executions
             ],
             "sections": [
                 {

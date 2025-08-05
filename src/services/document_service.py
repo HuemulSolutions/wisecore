@@ -7,6 +7,7 @@ from src.database.repositories.dependency_repo import DependencyRepo
 from src.database.repositories.execution_repo import ExecutionRepo
 from src.database.repositories.sectionexec_repo import SectionExecRepo
 from src.database.repositories.context_repo import ContextRepo
+from src.database.repositories.organization_repo import OrganizationRepo
 from src.database.models import (Document, Section, InnerDependency, 
                                  Dependency, Execution, Status, SectionExecution,
                                  Context)
@@ -25,6 +26,7 @@ class DocumentService:
         self.dependency_repo = DependencyRepo(session)
         self.execution_repo = ExecutionRepo(session)
         self.context_repo = ContextRepo(session)
+        self.organization_repo = OrganizationRepo(session)
 
     async def get_document_by_id(self, document_id: str):
         """
@@ -35,11 +37,21 @@ class DocumentService:
             raise ValueError(f"Document with ID {document_id} not found.")
         return document
     
-    async def get_all_documents(self):
+    async def delete_document(self, document_id: str):
+        """
+        Delete a document by its ID.
+        """
+        document = await self.document_repo.get_document(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        await self.document_repo.delete(document)
+        return True
+    
+    async def get_all_documents(self, organization_id: str = None):
         """
         Retrieve all documents.
         """
-        documents = await self.document_repo.get_all_documents()
+        documents = await self.document_repo.get_all_documents(organization_id)
         return documents
     
     async def get_document_sections(self, document_id: str):
@@ -49,18 +61,22 @@ class DocumentService:
         sections = await self.section_repo.get_sections_by_doc_id(document_id)
         return sections
     
-    async def create_document(self, name: str, description: str, template_id: str = None):
+    async def create_document(self, name: str, description: str, organization_id: str, template_id: str = None):
         """
         Create a new document.
         """
         print("Checking if template_id is provided:", template_id)
+        if await self.organization_repo.get_by_id(organization_id) is None:
+            raise ValueError(f"Organization with ID {organization_id} not found.")
+        
         if template_id and not await self.template_repo.get_by_id(template_id):
             raise ValueError(f"Template with ID {template_id} not found.")
         
         if await self.document_repo.get_by_name(name):
             raise ValueError(f"Document with name {name} already exists.")
         
-        new_document = Document(name=name, description=description, template_id=template_id)
+        new_document = Document(name=name, description=description,
+                                organization_id=organization_id, template_id=template_id)
         await self.document_repo.add(new_document)
         
         # If template_id is provided, copy template sections to document sections

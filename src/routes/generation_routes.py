@@ -23,9 +23,12 @@ async def stream_generation(request: GenerateDocument):
         
 @router.post("/generate_document")
 async def generate_document(request: GenerateDocument):
+    print("Generating document with request:", request)
     try:
         return StreamingResponse(
-            stream_graph(request.document_id, request.execution_id, request.instructions),
+            stream_graph(document_id=request.document_id, 
+                         execution_id=request.execution_id, 
+                         user_instructions=request.instructions),
             media_type="text/event-stream")
     except Exception as e:
         raise HTTPException(
