@@ -1,0 +1,28 @@
+name: Deploy DEV App to Code Engine
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+
+  deploy-app:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Deploy Application to Code Engine
+      uses: IBM/code-engine-github-action@v1
+      with:
+        api-key: ${{ secrets.IBM_IAM_API_KEY }}
+        resource-group: 'rg-wisecore'
+        region: 'us-south'
+        project: 'wisecore-dev-001'
+        component: 'app'
+        name: 'wisecore-backend'
+        build-source: './'
+        cpu: 1
+        memory: 4G
