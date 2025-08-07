@@ -35,7 +35,6 @@ async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> 
     """
     Entry point for the graph. It retrieves the sections and creates an execution.
     """
-    print(state)
     async with get_graph_session() as session:
         service = GraphServices(session)
         state['document'], state['sections'] = await service.init_execution(state['document_id'],
@@ -100,7 +99,6 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
         additional_instructions=state.get('execution_instructions', '')
     )
     print("Executing section:", section.name)
-    print("Prompt:", prompt)
     response = await llm.ainvoke(prompt)
     section = next(filter(lambda x: x.id == section.id, state['sections']), None)
     section.output = response.content

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Response
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
@@ -98,7 +98,7 @@ async def export_execution(execution_id: str,
                            session: Session = Depends(get_session),
                            transaction_id: str = Depends(get_transaction_id)):
     """
-    Export the results of a specific execution.
+    Export the results of a specific execution as a downloadable markdown file.
     """
     try:
         execution_service = ExecutionService(session)
@@ -108,10 +108,18 @@ async def export_execution(execution_id: str,
                 status_code=404,
                 detail=f"No section executions found for execution ID {execution_id}."
             )
-        data = {"execution_id": execution_id, "export_data": export_data}
-        return ResponseSchema(
-            transaction_id=transaction_id,
-            data=data
+        
+        # Generar el nombre del archivo
+        filename = f"execution_{execution_id}.md"
+        
+        # Retornar como archivo descargable
+        return Response(
+            content=export_data,
+            media_type="text/markdown",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "X-Transaction-ID": transaction_id  # Mantener el transaction_id en headers
+            }
         )
     except Exception as e:
         raise HTTPException(
