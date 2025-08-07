@@ -63,7 +63,7 @@ class Template(BaseClass):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
-    template_sections = relationship("TemplateSection", back_populates="template")
+    template_sections = relationship("TemplateSection", back_populates="template", cascade="all, delete-orphan")
     organization = relationship("Organization", back_populates="templates")
     documents = relationship("Document", back_populates="template")
     
@@ -77,8 +77,10 @@ class TemplateSectionDependency(BaseClass):
     template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=False)
     depends_on_template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=False)
     
-    template_section = relationship("TemplateSection", foreign_keys=[template_section_id], back_populates="internal_dependencies")
-    depends_on_template_section = relationship("TemplateSection", foreign_keys=[depends_on_template_section_id], back_populates="internal_dependents")
+    template_section = relationship("TemplateSection", foreign_keys=[template_section_id], 
+                                    back_populates="internal_dependencies")
+    depends_on_template_section = relationship("TemplateSection", foreign_keys=[depends_on_template_section_id], 
+                                               back_populates="internal_dependents")
 
     def __repr__(self):
         return f"<TemplateSectionDependency(template_section_id={self.template_section_id}, depends_on={self.depends_on_template_section_id})>"
@@ -97,8 +99,10 @@ class TemplateSection(BaseClass):
     template = relationship("Template", back_populates="template_sections")
     
     # Dependencias internas entre secciones de la plantilla
-    internal_dependencies = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.template_section_id", back_populates="template_section")
-    internal_dependents = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.depends_on_template_section_id", back_populates="depends_on_template_section")
+    internal_dependencies = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.template_section_id",
+                                         back_populates="template_section", cascade="all, delete-orphan")
+    internal_dependents = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.depends_on_template_section_id", 
+                                       back_populates="depends_on_template_section", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<TemplateSection(id={self.id}, name='{self.name}', order={self.order})>"

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.utils import get_transaction_id
@@ -69,7 +70,8 @@ async def create_template(template: CreateTemplate,
     """
     template_service = TemplateService(session)
     try:
-        template = await template_service.create_template(template.name, 
+        template = await template_service.create_template(template.name,
+                                                          template.organization_id, 
                                                           description=template.description)
         response = ResponseSchema(
             transaction_id=transaction_id,
@@ -111,6 +113,42 @@ async def delete_template(template_id: str,
                 detail={"transaction_id": transaction_id,
                         "error": f"An error occurred while deleting the template: {str(e)}"}
             )
+
+
+@router.get("/{template_id}/export")
+async def export_template(template_id: str,
+                         session: Session = Depends(get_session),
+                         transaction_id: str = Depends(get_transaction_id)):
+    """
+    Export a template to JSON format for download.
+    Returns a JSON file with template specifications excluding internal IDs and metadata.
+    """
+    template_service = TemplateService(session)
+    try:
+        export_data = await template_service.export_template(template_id)
+        
+        # Return as JSON response with appropriate headers for file download
+        return JSONResponse(
+            content=export_data,
+            headers={
+                "Content-Disposition": f"attachment; filename={export_data['name']}_template.json",
+                "Content-Type": "application/json"
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while exporting the template: {str(e)}"}
+        )
+
+
 @router.post("/sections/")  
 async def create_template_section(template_section: CreateTemplateSection,
                                   session: Session = Depends(get_session),

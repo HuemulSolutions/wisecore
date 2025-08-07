@@ -23,6 +23,7 @@ class CreateTemplate(BaseModel):
     Schema for creating a template.
     """
     name: str
+    organization_id: str
     description: Optional[str] = None  # Optional field, can be None
     
 class CreateTemplateSection(BaseModel):

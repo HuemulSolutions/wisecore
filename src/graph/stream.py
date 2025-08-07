@@ -34,8 +34,11 @@ async def stream_graph(document_id: str, execution_id: str, user_instructions: s
         execution_id=execution_id,
         execution_instructions=user_instructions
     )
+    initial_config = {
+            "recursion_limit": 60,
+        }
     try:
-        async for event in compiled_graph.astream(state, stream_mode=["messages", "custom"]):
+        async for event in compiled_graph.astream(state, config=initial_config, stream_mode=["messages", "custom"]):
             yield format_event(event)
     except Exception as e:
         yield f"event: error\ndata: {str(e)}\n\n"

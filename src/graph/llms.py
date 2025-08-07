@@ -9,6 +9,12 @@ def get_llm(llm: str)-> BaseChatModel:
             azure_deployment="gpt-4.1",
         )
         return gpt
+    elif llm == "deepseek":
+        deepseek = init_chat_model(
+            model="azure_ai:DeepSeek-V3-0324",
+            azure_deployment="DeepSeek-V3-0324",
+        )
+        return deepseek
     elif llm == "llama":
         llama = init_chat_model(
             model="ibm:meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
