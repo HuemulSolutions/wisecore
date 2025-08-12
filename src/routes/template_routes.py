@@ -6,7 +6,8 @@ from src.database.core import get_session
 from src.utils import get_transaction_id
 from src.services.template_service import TemplateService
 from src.services.template_section_service import TemplateSectionService
-from src.schemas import ResponseSchema, CreateTemplate, CreateTemplateSection, CreateTemplateSectionDependency
+from src.schemas import (ResponseSchema, CreateTemplate, CreateTemplateSection, 
+                         CreateTemplateSectionDependency, UpdateSection)
 
 router = APIRouter(prefix="/templates")
 
@@ -181,6 +182,41 @@ async def create_template_section(template_section: CreateTemplateSection,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while creating the template section: {str(e)}"}
+        )
+        
+        
+@router.put("/sections/{section_id}")
+async def update_template_section(section_id: str,
+                                  template_section: UpdateSection,
+                                  session: Session = Depends(get_session),
+                                  transaction_id: str = Depends(get_transaction_id)):
+    """ 
+    Update an existing template section.
+    """
+    template_section_service = TemplateSectionService(session)
+    try:
+        updated_section = await template_section_service.update_template_section(
+            id=section_id,
+            name=template_section.name,
+            prompt=template_section.prompt,
+            dependencies=template_section.dependencies or []
+        )
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_section)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the template section: {str(e)}"}
         )
         
 @router.post("/sections/dependency/")

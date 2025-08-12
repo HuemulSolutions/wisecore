@@ -37,6 +37,14 @@ class CreateTemplateSection(BaseModel):
     type: str = "text"  # Optional field, can be None
     
     
+class UpdateSection(BaseModel):
+    """
+    Schema for updating a template section.
+    """
+    name: str
+    prompt: str
+    dependencies: Optional[List[str]] = None  # Optional field, can be None
+    
 class CreateTemplateSectionDependency(BaseModel):
     """
     Schema for creating a dependency between template sections.
@@ -70,6 +78,8 @@ class CreateDocumentSection(BaseModel):
     prompt: str
     dependencies: Optional[List[str]] = None  # Optional field, can be None
     type: str = "text"  # Optional field, can be None
+    
+    
     
 class AddDocumentContextText(BaseModel):
     """

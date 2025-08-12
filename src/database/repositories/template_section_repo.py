@@ -148,3 +148,61 @@ class TemplateSectionRepo(BaseRepository[TemplateSection]):
         
         self.session.add(new_dependency)
         return new_dependency
+    
+    async def update_section(self, section: TemplateSection, dependencies: list[str]) -> TemplateSection:
+        """
+        Update an existing section and its dependencies.
+        Verifica que no se creen dependencias circulares al actualizar.
+        """
+        # Verificar que la sección existe
+        existing_section = await self.get_by_id(section.id)
+        if not existing_section:
+            raise ValueError(f"Section with ID {section.id} not found.")
+        
+        # Obtener dependencias actuales para poder revertir si hay error
+        current_dependencies_query = select(TemplateSectionDependency).where(
+            TemplateSectionDependency.template_section_id == section.id
+        )
+        current_dependencies_result = await self.session.execute(current_dependencies_query)
+        current_dependencies = current_dependencies_result.scalars().all()
+        
+        try:
+            # Eliminar todas las dependencias actuales
+            for dependency in current_dependencies:
+                await self.session.delete(dependency)
+            await self.session.flush()
+            
+            # Verificar cada nueva dependencia antes de agregarla
+            for depends_on_id in dependencies:
+                # Verificar que la sección objetivo existe
+                depends_on_section = await self.get_by_id(depends_on_id)
+                if not depends_on_section:
+                    raise ValueError(f"Section with ID {depends_on_id} not found.")
+                
+                # Verificar dependencia circular
+                if await self._has_circular_dependency(section.id, depends_on_id):
+                    raise ValueError(
+                        f"No se puede crear la dependencia: esto generaría una dependencia circular entre las secciones {section.id} y {depends_on_id}"
+                    )
+            
+            # Si todas las verificaciones pasan, agregar las nuevas dependencias
+            for depends_on_id in dependencies:
+                new_dependency = TemplateSectionDependency(
+                    template_section_id=section.id,
+                    depends_on_template_section_id=depends_on_id
+                )
+                self.session.add(new_dependency)
+            
+            # Actualizar los campos de la sección
+            existing_section.name = section.name
+            existing_section.type = section.type
+            existing_section.prompt = section.prompt
+            existing_section.order = section.order
+            
+            await self.session.flush()
+            return existing_section
+            
+        except Exception as e:
+            # Si hay cualquier error, revertir la transacción
+            await self.session.rollback()
+            raise e

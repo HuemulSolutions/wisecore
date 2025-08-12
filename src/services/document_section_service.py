@@ -39,7 +39,7 @@ class SectionService:
         return await self.section_repo.add_dependency(section_id, depends_on_id)
     
     async def update_section(self, section_id: str, name: str = None, prompt: str = None,
-                                type: str = None, dependencies: list[str] = None) -> Section:
+                             dependencies: list[str] = None) -> Section:
         """
         Update an existing section.
         """
@@ -51,9 +51,7 @@ class SectionService:
             section.name = name
         if prompt:
             section.prompt = prompt
-        if type:
-            section.type = type
         
-        updated_section = await self.section_repo.update(section, dependencies=dependencies)
+        updated_section = await self.section_repo.update_section(section, dependencies=dependencies)
         return updated_section
         

@@ -60,6 +60,7 @@ class DocumentRepo(BaseRepository[Document]):
             return None
         
         sorted_executions = sorted(doc.executions, key=lambda e: e.created_at, reverse=True)
+        sorted_sections = sorted(doc.sections, key=lambda s: s.order)
             
         return {
             "id": doc.id,
@@ -87,10 +88,10 @@ class DocumentRepo(BaseRepository[Document]):
                     "prompt": section.prompt,
                     "order": section.order,
                     "dependencies": [
-                       dep for dep in section.internal_dependencies
+                       {"id": dep.depends_on_section_id, "name": dep.depends_on_section.name} for dep in section.internal_dependencies
                     ]
                 }
-                for section in doc.sections
+                for section in sorted_sections
             ]
         }
     

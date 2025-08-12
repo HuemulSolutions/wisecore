@@ -35,4 +35,30 @@ class TemplateSectionService:
         Add a dependency relationship between two template sections.
         """
         return await self.template_section_repo.add_dependency(section_id, depends_on_id)
+    
+    async def update_template_section(self, id: str, name: str,
+                                      prompt: str, dependencies: list[str]) -> TemplateSection:
+        """
+        Update an existing template section.
+        """
+        section = await self.template_section_repo.get_by_id(id)
+        if not section:
+            raise ValueError(f"Template section with id {id} not found.")
+        
+        if name != section.name:
+            check_name = await self.template_section_repo.get_by_name(name, section.template_id)
+            if check_name and check_name.id != id:
+                raise ValueError(f"Template section with name {name} already exists in this template.")
+        
+        updated_section = TemplateSection(
+            id=section.id,
+            name=name,
+            template_id=section.template_id,
+            order=section.order,
+            prompt=prompt,
+            type=section.type
+        )
+        
+        updated_section = await self.template_section_repo.update_section(updated_section, dependencies)
+        return updated_section
         
