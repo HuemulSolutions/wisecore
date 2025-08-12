@@ -53,6 +53,20 @@ class ExecutionRepo(BaseRepository[Execution]):
             }
         else:
             sorted_section_executions = sorted(execution.sections_executions, key=lambda se: se.order)
+            sections = []
+            for section_exec in sorted_section_executions:
+                output = None
+                if section_exec.custom_output:
+                    output = section_exec.custom_output
+                elif section_exec.output:
+                    output = section_exec.output
+                sections.append({
+                    "id": section_exec.section.id,
+                    "section_execution_id": section_exec.id,
+                    "name": section_exec.section.name,
+                    "prompt": section_exec.section.prompt,
+                    "output": output
+                })
             result_dict = {
                 "id": execution.id,
                 "document_id": execution.document_id,
@@ -62,12 +76,7 @@ class ExecutionRepo(BaseRepository[Execution]):
                 "updated_at": execution.updated_at,
                 "document_name": execution.document.name,
                 "instruction": execution.user_instruction,
-                "sections": [{
-                    "id": section_exec.section.id,
-                    "name": section_exec.section.name,
-                    "prompt": section_exec.section.prompt,
-                    "output": section_exec.output if section_exec.output else None,
-                } for section_exec in sorted_section_executions]
+                "sections": sections
             }
         return result_dict
     

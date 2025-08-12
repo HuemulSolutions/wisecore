@@ -51,6 +51,18 @@ class ExecutionService:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution.status
     
+    async def modify_section_exec_content(self, section_execution_id: str, new_content: str):
+        """
+        Modify the content of a section execution.
+        """
+        section_exec = await self.section_exec_repo.get_by_id(section_execution_id)
+        if not section_exec:
+            raise ValueError(f"Section execution with ID {section_execution_id} not found.")
+        
+        section_exec.custom_output = new_content
+        updated_section_exec = await self.section_exec_repo.update(section_exec)
+        return updated_section_exec
+    
     async def export_section_execs(self, execution_id: str) -> list:
         """
         Export the section executions for a specific execution.

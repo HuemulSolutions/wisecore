@@ -87,3 +87,10 @@ class AddDocumentContextText(BaseModel):
     """
     name: str
     content: str
+    
+    
+class ModifySection(BaseModel):
+    """
+    Schema for modifying a section's content.
+    """
+    content: str
