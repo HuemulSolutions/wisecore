@@ -27,6 +27,15 @@ class GraphServices():
             raise ValueError(f"No sections found for document with ID {document_id}.")
         return document, sections
     
+    async def get_llm_name(self, execution_id: str) -> str:
+        """
+        Retrieve the LLM name used in the execution.
+        """
+        execution = await self.execution_repo.get_execution(execution_id, with_model=True)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        return execution.model.name
+    
     
     async def get_document_context(self, document_id: str) -> str:
         """

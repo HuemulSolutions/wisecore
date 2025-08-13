@@ -186,6 +186,16 @@ class Section(BaseClass):
     def __repr__(self):
         return f"<Section(id={self.id}, name='{self.name}', order={self.order})>"
     
+    
+class LLM(BaseClass):
+    __tablename__ = "llm"
+    
+    name = Column(String, nullable=False)
+    executions = relationship("Execution", back_populates="model")
+    
+    def __repr__(self):
+        return f"<LLM(id={self.id}, name='{self.name}')>"
+    
 class Status(Enum):
     PENDING = "pending"
     RUNNING = "running"
@@ -200,8 +210,10 @@ class Execution(BaseClass):
     status = Column(SAEnum(Status, name="status_enum"), nullable=False)
     status_message = Column(String, nullable=True)
     document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
+    model_id = Column(UUID(as_uuid=True), ForeignKey("llm.id"), nullable=True)
     
     document = relationship("Document", back_populates="executions")
+    model = relationship("LLM", back_populates="executions")
     sections_executions = relationship("SectionExecution", back_populates="execution")
     
     def __repr__(self):

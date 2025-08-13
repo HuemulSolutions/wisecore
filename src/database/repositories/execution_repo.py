@@ -44,6 +44,7 @@ class ExecutionRepo(BaseRepository[Execution]):
                 "updated_at": execution.updated_at,
                 "document_name": execution.document.name,
                 "instruction": execution.user_instruction,
+                "llm_id": execution.model_id,
                 "sections": [{
                     "id": section.id,
                     "name": section.name,
@@ -80,11 +81,13 @@ class ExecutionRepo(BaseRepository[Execution]):
             }
         return result_dict
     
-    async def get_execution(self, execution_id: str) -> Execution:
+    async def get_execution(self, execution_id: str, with_model: bool = False) -> Execution:
         """
         Retrieve an execution by its ID.
         """
         query = select(self.model).where(self.model.id == execution_id)
+        if with_model:
+            query = query.options(joinedload(self.model.model))
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
     

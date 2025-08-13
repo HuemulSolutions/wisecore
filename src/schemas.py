@@ -94,3 +94,9 @@ class ModifySection(BaseModel):
     Schema for modifying a section's content.
     """
     content: str
+    
+class UpdateLLM(BaseModel):
+    """
+    Schema for updating the LLM used in an execution.
+    """
+    llm_id: str

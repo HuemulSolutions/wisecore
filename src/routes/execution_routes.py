@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.execution_service import ExecutionService
-from src.schemas import ResponseSchema, ModifySection
+from src.schemas import ResponseSchema, ModifySection, UpdateLLM
 from src.utils import get_transaction_id
 
 
@@ -91,6 +91,36 @@ async def get_execution_status(execution_id: str,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while retrieving the execution status: {str(e)}"}
+        )
+        
+        
+@router.put("/update_llm/{execution_id}")
+async def update_llm(execution_id: str,
+                     request: UpdateLLM,
+                     session: Session = Depends(get_session),
+                     transaction_id: str = Depends(get_transaction_id)):
+    """
+    Update the LLM used for an execution.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        updated_execution = await execution_service.update_llm(execution_id, request.llm_id)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_execution)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the LLM: {str(e)}"}
         )
         
 @router.put("/modify_content/{section_execution_id}")

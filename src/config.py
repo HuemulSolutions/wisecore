@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 from dataclasses import dataclass, fields
 # Load environment variables from .env file
-# load_dotenv()
-load_dotenv(dotenv_path=Path(".env.dev"))
+load_dotenv()
+# load_dotenv(dotenv_path=Path(".env.dev"))
 
 @dataclass
 class Config:
@@ -17,6 +17,7 @@ class Config:
     WATSONX_PROJECT_ID: str = os.getenv("WATSONX_PROJECT_ID")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "LOCAL")
     ALEMBIC_DATABASE_URL: str = os.getenv("ALEMBIC_DATABASE_URL", "")
+    DEFAULT_LLM: str = os.getenv("DEFAULT_LLM", "gpt-4.1")
 
     def __post_init__(self):
         """Validate that all environment variables are loaded correctly."""
