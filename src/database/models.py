@@ -214,7 +214,7 @@ class Execution(BaseClass):
     
     document = relationship("Document", back_populates="executions")
     model = relationship("LLM", back_populates="executions")
-    sections_executions = relationship("SectionExecution", back_populates="execution")
+    sections_executions = relationship("SectionExecution", back_populates="execution", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Execution(id={self.id}, status={self.status.value}, document_id={self.document.name})>"

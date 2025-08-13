@@ -62,6 +62,17 @@ class ExecutionService:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution.status
     
+    async def delete_execution(self, execution_id: str):
+        """
+        Delete an execution by its ID.
+        """
+        execution = await self.execution_repo.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        
+        await self.execution_repo.delete(execution)
+        return {"message": f"Execution with ID {execution_id} deleted successfully."}
+    
     async def update_llm(self, execution_id: str, llm_id: str):
         """
         Update the LLM used for an execution.

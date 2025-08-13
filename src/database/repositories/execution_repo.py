@@ -34,24 +34,26 @@ class ExecutionRepo(BaseRepository[Execution]):
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         
+        result_dict = {
+            "id": execution.id,
+            "document_id": execution.document_id,
+            "status": execution.status,
+            "status_message": execution.status_message,
+            "created_at": execution.created_at,
+            "updated_at": execution.updated_at,
+            "document_name": execution.document.name,
+            "instruction": execution.user_instruction,
+            "llm_id": execution.model_id
+        }
+        
         if execution.status == Status.PENDING:
             sorted_sections = sorted(execution.document.sections, key=lambda s: s.order)
-            result_dict = {
-                "id": execution.id,
-                "document_id": execution.document_id,
-                "status": execution.status,
-                "created_at": execution.created_at,
-                "updated_at": execution.updated_at,
-                "document_name": execution.document.name,
-                "instruction": execution.user_instruction,
-                "llm_id": execution.model_id,
-                "sections": [{
-                    "id": section.id,
-                    "name": section.name,
-                    "prompt": section.prompt,
-                    "output": "",
+            result_dict["sections"] = [
+                {"id": section.id,
+                 "name": section.name,
+                 "prompt": section.prompt,
+                 "output": "",
                 } for section in sorted_sections]
-            }
         else:
             sorted_section_executions = sorted(execution.sections_executions, key=lambda se: se.order)
             sections = []
@@ -68,17 +70,7 @@ class ExecutionRepo(BaseRepository[Execution]):
                     "prompt": section_exec.section.prompt,
                     "output": output
                 })
-            result_dict = {
-                "id": execution.id,
-                "document_id": execution.document_id,
-                "status": execution.status,
-                "status_message": execution.status_message,
-                "created_at": execution.created_at,
-                "updated_at": execution.updated_at,
-                "document_name": execution.document.name,
-                "instruction": execution.user_instruction,
-                "sections": sections
-            }
+            result_dict["sections"] = sections
         return result_dict
     
     async def get_execution(self, execution_id: str, with_model: bool = False) -> Execution:
