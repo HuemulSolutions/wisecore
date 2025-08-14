@@ -17,6 +17,13 @@ class GenerateDocument(BaseModel):
     execution_id: str
     instructions: Optional[str] = None
     
+class FixSection(BaseModel):
+    """
+    Schema for fixing a section in a document.
+    """
+    content: str
+    instructions: str
+    
     
 class CreateTemplate(BaseModel):
     """

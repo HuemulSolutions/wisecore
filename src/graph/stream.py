@@ -1,7 +1,9 @@
 from .graph import compiled_graph
 from .nodes import State
-from .services import GraphServices
 from src.database.core import get_graph_session
+from src.graph.services import GraphServices
+from src.database.models import Status
+import asyncio
 
 
 def get_state(document_id: str) -> State:
@@ -40,9 +42,15 @@ async def stream_graph(document_id: str, execution_id: str, user_instructions: s
     try:
         async for event in compiled_graph.astream(state, config=initial_config, stream_mode=["messages", "custom"]):
             yield format_event(event)
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
+        with get_graph_session() as session:
+            service = GraphServices(session)
+            await service.update_execution(execution_id, Status.FAILED, str(e))
         yield f"event: error\ndata: {str(e)}\n\n"
-        raise e
+        return
+    
         
 def test_stream_graph():
     """
