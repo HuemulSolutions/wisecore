@@ -19,7 +19,8 @@ async def fix_section_service(content: str, instructions: str):
     llm = get_llm(system_config.DEFAULT_LLM)
     if not llm:
         raise ValueError(f"LLM with name {system_config.DEFAULT_LLM} not found.")
-    promtp = f"""Fix the following section content following the instructions of the user: 
+    promtp = f"""Fix the following section content following the instructions of the user, usually the content is in markdown format:   
+The content is inside the triple backticks:
 ```
 {content}
 ```
@@ -29,7 +30,7 @@ Instructions:
 {instructions}
 ```
 
-Output the fixed content only."""
+Output the fixed content only, no need to add backticks, just the content."""
     try:
         async for response in llm.astream(input=promtp):
             print("Response:", response)
