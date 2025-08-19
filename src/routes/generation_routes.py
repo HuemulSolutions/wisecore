@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from src.graph.stream import stream_graph
-from src.services.generation_service import fix_section_service
-from src.schemas import GenerateDocument, FixSection
+from src.services.generation_service import (fix_section_service, redact_section_prompt_service)
+from src.schemas import GenerateDocument, FixSection, RedactSectionPrompt
 
 router = APIRouter(prefix="/generation")
 
@@ -51,6 +51,27 @@ async def fix_section(request: FixSection):
         raise HTTPException(
             status_code=400,
             detail=f"An error occurred while fixing the section: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
+        
+        
+@router.post("/redact_section_prompt")
+async def redact_section_prompt(request: RedactSectionPrompt):
+    """
+    Redact or improve the prompt for a section.
+    """
+    try:
+        return StreamingResponse(
+            redact_section_prompt_service(name=request.name, content=request.content),
+            media_type="text/event-stream")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An error occurred while redacting the section prompt: {str(e)}"
         )
     except Exception as e:
         raise HTTPException(

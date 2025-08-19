@@ -35,7 +35,7 @@ Sigue las indicaciones de la sección y redacta un texto que cumpla con el prop�
 Redacta una sección pensando que será parte de un documento con otras secciones.
 Usa lenguaje profesional, comprensible y claro.
 Es un documento que debe ser redactado en detalle, no seas breve redacta de forma completa.
-Si es adecuado, usa formato markdown para mejorar la legibilidad del texto.
+Si es adecuado, usa formato markdown para mejorar la legibilidad del texto, siempre inicia con ## <nombre de la sección> a no ser que se indique algo diferente.
 """
 
 

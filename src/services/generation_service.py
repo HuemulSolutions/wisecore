@@ -33,8 +33,38 @@ Instructions:
 Output the fixed content only, no need to add backticks, just the content."""
     try:
         async for response in llm.astream(input=promtp):
-            print("Response:", response)
             yield format_content(response)
     except Exception as e:
         raise ValueError(f"An error occurred while fixing the section: {str(e)}")
+    return
+
+
+async def redact_section_prompt_service(name: str, content: str = None):
+    """
+    Redact or improve the prompt for a section.
+    """
+    llm = get_llm(system_config.DEFAULT_LLM)
+    if not llm:
+        raise ValueError(f"LLM with name {system_config.DEFAULT_LLM} not found.")
+    
+    prompt_generate = """Redacta el prompt para un agente de IA que redacta una sección de un documento.
+El prompt debe ser claro, conciso y contener toda la información necesaria para que el agente pueda redactar la sección de manera efectiva.
+Debe ser una descripción breve de lo que tiene que contener la sección.
+El nombre de la sección es el siguiente: {name}"""
+
+    prompt_improve = """Mejora el prompt para un agente de IA que redacta una sección de un documento.
+El prompt debe ser claro, conciso y contener toda la información necesaria para que el agente pueda redactar la sección de manera efectiva.
+Debe ser una descripción breve de lo que tiene que contener la sección.
+El nombre de la sección es el siguiente: {name}
+El prompt actual es el siguiente:
+{content}"""
+    if content:
+        prompt = prompt_improve.format(name=name, content=content)
+    else:
+        prompt = prompt_generate.format(name=name)
+    try:
+        async for response in llm.astream(input=prompt):
+            yield format_content(response)
+    except Exception as e:
+        raise ValueError(f"An error occurred while redacting the section prompt: {str(e)}")
     return

@@ -25,6 +25,14 @@ class FixSection(BaseModel):
     instructions: str
     
     
+class RedactSectionPrompt(BaseModel):
+    """
+    Schema for redacting or improving the prompt for a section.
+    """
+    name: str
+    content: Optional[str] = None  # Optional field, can be None
+    
+    
 class CreateTemplate(BaseModel):
     """
     Schema for creating a template.
