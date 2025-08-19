@@ -105,4 +105,31 @@ async def update_document_section(section_id: str,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while updating the section: {str(e)}"}
         )
-                                  
+
+
+@router.delete("/{section_id}")
+async def delete_document_section(section_id: str,
+                                  session: Session = Depends(get_session),
+                                  transaction_id: str = Depends(get_transaction_id)):
+    """
+    Delete a section from a document.
+    """
+    section_service = SectionService(session)
+    try:
+        await section_service.delete_section(section_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data={"message": "Section deleted successfully"}
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while deleting the section: {str(e)}"}
+        )                  

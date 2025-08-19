@@ -30,6 +30,16 @@ class TemplateSectionService:
         created_section = await self.template_section_repo.add(new_section, dependencies=dependencies)
         return created_section
     
+    async def delete_template_section(self, section_id: str) -> None:
+        """
+        Delete a template section.
+        """
+        section = await self.template_section_repo.get_by_id(section_id)
+        if not section:
+            raise ValueError(f"Template section with id {section_id} not found.")
+        
+        await self.template_section_repo.delete(section)
+    
     async def add_dependency(self, section_id: str, depends_on_id: str) -> TemplateSection:
         """
         Add a dependency relationship between two template sections.

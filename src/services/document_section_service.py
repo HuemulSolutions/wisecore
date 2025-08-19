@@ -55,6 +55,16 @@ class SectionService:
         updated_section = await self.section_repo.update_section(section, dependencies=dependencies)
         return updated_section
     
+    async def delete_section(self, section_id: str) -> None:
+        """
+        Delete a section.
+        """
+        section = await self.section_repo.get_by_id(section_id)
+        if not section:
+            raise ValueError(f"Section with ID {section_id} not found.")
+        
+        await self.section_repo.delete(section)
+    
     async def update_section_order(self, new_order: list[dict]) -> Section:
         """
         Update the order of a section.

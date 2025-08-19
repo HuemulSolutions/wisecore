@@ -248,6 +248,34 @@ async def update_template_section(section_id: str,
                     "error": f"An error occurred while updating the template section: {str(e)}"}
         )
         
+@router.delete("/sections/{section_id}")
+async def delete_template_section(section_id: str,
+                                    session: Session = Depends(get_session),
+                                    transaction_id: str = Depends(get_transaction_id)):
+        """
+        Delete a template section by its ID.
+        """
+        template_section_service = TemplateSectionService(session)
+        try:
+            await template_section_service.delete_template_section(section_id)
+            response = ResponseSchema(
+                transaction_id=transaction_id,
+                data={"message": "Template section deleted successfully"}
+            )
+            return response
+        except ValueError as e:
+            raise HTTPException(
+                status_code=404,
+                detail={"transaction_id": transaction_id,
+                        "error": str(e)}
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                        "error": f"An error occurred while deleting the template section: {str(e)}"}
+            )
+        
 @router.post("/sections/dependency/")
 async def add_template_section_dependency(template_section_dependency: CreateTemplateSectionDependency,
                                           session: Session = Depends(get_session),
