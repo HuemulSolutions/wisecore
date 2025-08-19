@@ -7,7 +7,7 @@ from src.utils import get_transaction_id
 from src.services.template_service import TemplateService
 from src.services.template_section_service import TemplateSectionService
 from src.schemas import (ResponseSchema, CreateTemplate, CreateTemplateSection, 
-                         CreateTemplateSectionDependency, UpdateSection)
+                         CreateTemplateSectionDependency, UpdateSection, UpdateSectionOrder)
 
 router = APIRouter(prefix="/templates")
 
@@ -148,6 +148,35 @@ async def export_template(template_id: str,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while exporting the template: {str(e)}"}
         )
+        
+@router.put("/sections/order")
+async def update_template_section_order(update_order: UpdateSectionOrder,
+                                        session: Session = Depends(get_session),
+                                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Update the order of template sections.
+    """
+    template_section_service = TemplateSectionService(session)
+    try:
+        updated_order = await template_section_service.update_section_order(update_order.new_order)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_order)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the section order: {str(e)}"}
+        )
+        
 
 
 @router.post("/sections/")  
@@ -183,8 +212,8 @@ async def create_template_section(template_section: CreateTemplateSection,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while creating the template section: {str(e)}"}
         )
-        
-        
+
+
 @router.put("/sections/{section_id}")
 async def update_template_section(section_id: str,
                                   template_section: UpdateSection,
@@ -247,3 +276,4 @@ async def add_template_section_dependency(template_section_dependency: CreateTem
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while adding the dependency: {str(e)}"}
         )
+        

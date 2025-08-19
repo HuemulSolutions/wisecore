@@ -61,4 +61,20 @@ class TemplateSectionService:
         
         updated_section = await self.template_section_repo.update_section(updated_section, dependencies)
         return updated_section
+    
+    async def update_section_order(self, new_order: list[dict]) -> list[TemplateSection]:
+        """
+        Update the order of template sections.
+        """
+        updated_sections = []
+        for item in new_order:
+            section = await self.template_section_repo.get_by_id(item.section_id)
+            if not section:
+                raise ValueError(f"Template section with id {item['section_id']} not found.")
+            
+            section.order = item.order
+            updated_section = await self.template_section_repo.update(section)
+            updated_sections.append(updated_section)
+        
+        return updated_sections
         

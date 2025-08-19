@@ -54,4 +54,19 @@ class SectionService:
         
         updated_section = await self.section_repo.update_section(section, dependencies=dependencies)
         return updated_section
+    
+    async def update_section_order(self, new_order: list[dict]) -> Section:
+        """
+        Update the order of a section.
+        """
+        updated_sections = []
+        for item in new_order:
+            section = await self.section_repo.get_by_id(item.section_id)
+            if not section:
+                raise ValueError(f"Section with ID {item['section_id']} not found.")
+            section.order = item.order
+            updated_section = await self.section_repo.update(section)
+            updated_sections.append(updated_section)
+        
+        return updated_sections
         

@@ -59,6 +59,20 @@ class CreateTemplateSectionDependency(BaseModel):
     section_id: str
     depends_on_id: str
     
+    
+class SectionOrder(BaseModel):
+    """
+    Schema for ordering template sections.
+    """
+    section_id: str
+    order: int
+
+class UpdateSectionOrder(BaseModel):
+    """
+    Schema for updating the order of template sections.
+    """
+    new_order: List[SectionOrder]
+    
 class CreateDocument(BaseModel):
     """
     Schema for creating a document.
@@ -107,3 +121,11 @@ class UpdateLLM(BaseModel):
     Schema for updating the LLM used in an execution.
     """
     llm_id: str
+    
+    
+class CreateOrganization(BaseModel):
+    """
+    Schema for creating an organization.
+    """
+    name: str
+    description: Optional[str] = None  # Optional field, can be None
