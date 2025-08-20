@@ -26,7 +26,7 @@ class TemplateRepo(BaseRepository[Template]):
             
             # Añadir atributo dependencies a cada sección
             for section in template.template_sections:
-                section.dependencies = [dep.depends_on_template_section.name for dep in section.internal_dependencies]
+                section.dependencies = [{"id": dep.depends_on_template_section.id, "name": dep.depends_on_template_section.name} for dep in section.internal_dependencies]
             
         return template
     

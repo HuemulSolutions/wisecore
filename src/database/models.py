@@ -104,6 +104,9 @@ class TemplateSection(BaseClass):
     internal_dependents = relationship("TemplateSectionDependency", foreign_keys="TemplateSectionDependency.depends_on_template_section_id", 
                                        back_populates="depends_on_template_section", cascade="all, delete-orphan")
     
+    # Hacer que las secciones que referencian a esta TemplateSection se desvinculen (SET NULL) al borrar
+    sections = relationship("Section", back_populates="template_section", passive_deletes=True)
+    
     def __repr__(self):
         return f"<TemplateSection(id={self.id}, name='{self.name}', order={self.order})>"
     
@@ -150,10 +153,13 @@ class Section(BaseClass):
     type = Column(String, nullable=True) # por si se añade una sección tipo imágen
     prompt = Column(String, nullable=True)
     order = Column(Integer, nullable=False)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
-    template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id"), nullable=True)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("document.id", ondelete="SET NULL"), nullable=False)
+    # Ajustar FK para permitir borrar TemplateSection dejando este campo en NULL
+    template_section_id = Column(UUID(as_uuid=True), ForeignKey("template_section.id", ondelete="SET NULL"), nullable=True)
 
     document = relationship("Document", back_populates="sections")
+    # Relación inversa hacia TemplateSection
+    template_section = relationship("TemplateSection", back_populates="sections")
     
     # Dependencias internas (mismo documento)
     internal_dependencies = relationship("InnerDependency", foreign_keys="InnerDependency.section_id", back_populates="section", cascade="all, delete-orphan")
@@ -163,7 +169,7 @@ class Section(BaseClass):
     external_dependencies = relationship("Dependency", foreign_keys="Dependency.section_id", back_populates="section")
     external_dependents = relationship("Dependency", foreign_keys="Dependency.depends_on_section_id", back_populates="depends_on_section")
     
-    section_executions = relationship("SectionExecution", back_populates="section")
+    section_executions = relationship("SectionExecution", back_populates="section", passive_deletes=True)
     chunks = relationship("Chunk", back_populates="section")
     
     @property
@@ -186,6 +192,16 @@ class Section(BaseClass):
     def __repr__(self):
         return f"<Section(id={self.id}, name='{self.name}', order={self.order})>"
     
+    
+class LLM(BaseClass):
+    __tablename__ = "llm"
+    
+    name = Column(String, nullable=False)
+    executions = relationship("Execution", back_populates="model")
+    
+    def __repr__(self):
+        return f"<LLM(id={self.id}, name='{self.name}')>"
+    
 class Status(Enum):
     PENDING = "pending"
     RUNNING = "running"
@@ -200,9 +216,11 @@ class Execution(BaseClass):
     status = Column(SAEnum(Status, name="status_enum"), nullable=False)
     status_message = Column(String, nullable=True)
     document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
+    model_id = Column(UUID(as_uuid=True), ForeignKey("llm.id"), nullable=True)
     
     document = relationship("Document", back_populates="executions")
-    sections_executions = relationship("SectionExecution", back_populates="execution")
+    model = relationship("LLM", back_populates="executions")
+    sections_executions = relationship("SectionExecution", back_populates="execution", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Execution(id={self.id}, status={self.status.value}, document_id={self.document.name})>"
@@ -217,7 +235,7 @@ class SectionExecution(BaseClass):
     output = Column(String, nullable=True)
     custom_output = Column(String, nullable=True)
     is_locked = Column(Boolean, default=False, nullable=False)
-    section_id = Column(UUID(as_uuid=True), ForeignKey("section.id"), nullable=False)
+    section_id = Column(UUID(as_uuid=True), ForeignKey("section.id", ondelete="SET NULL"), nullable=True)
     execution_id = Column(UUID(as_uuid=True), ForeignKey("execution.id"), nullable=False)
     
     section = relationship("Section", back_populates="section_executions")

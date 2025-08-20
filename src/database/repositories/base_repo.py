@@ -25,4 +25,9 @@ class BaseRepository(Generic[T]):
         result = await self.session.execute(select(self.model))
         return result.scalars().all()
     
+    async def update(self, instance: T) -> T:
+        self.session.add(instance)
+        await self.session.flush()
+        return instance
+    
     

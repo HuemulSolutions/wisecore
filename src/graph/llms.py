@@ -9,18 +9,24 @@ def get_llm(llm: str)-> BaseChatModel:
             azure_deployment="gpt-4.1",
         )
         return gpt
-    elif llm == "deepseek":
+    elif llm == "deepseek-v3":
         deepseek = init_chat_model(
             model="azure_ai:DeepSeek-V3-0324",
             azure_deployment="DeepSeek-V3-0324",
         )
         return deepseek
-    elif llm == "llama":
+    elif llm == "llama-4-maverick":
         llama = init_chat_model(
-            model="ibm:meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
-            project_id=system_config.WATSONX_PROJECT_ID
+            model="azure_ai:Llama-4-Maverick-17B-128E-Instruct-FP8",
+            azure_deployment="Llama-4-Maverick-17B-128E-Instruct-FP8"
         )
         return llama
+    elif llm == "gpt-oss":
+        gpt_oss = init_chat_model(
+            model="azure_ai:gpt-oss-120b",
+            azure_deployment="gpt-oss-120b",
+        )
+        return gpt_oss
     elif llm == "granite":
         granite = init_chat_model(
             model="ibm:ibm/granite-3-3-8b-instruct",

@@ -280,39 +280,7 @@ async def get_document_context(document_id: str,
                       "error": f"An error occurred while retrieving context for document ID {document_id}: {str(e)}"}
           )
         
-@router.post("/sections")
-async def create_document_section(section: CreateDocumentSection,
-                                  session: Session = Depends(get_session),
-                                  transaction_id: str = Depends(get_transaction_id)):
-    """
-    Create a new section in a document.
-    """
-    section_service = SectionService(session)
-    try:
-        new_section = await section_service.create_section(
-            document_id=section.document_id,
-            name=section.name,
-            type=section.type,
-            prompt=section.prompt,
-            dependencies=section.dependencies or []
-        )
-        return ResponseSchema(
-            transaction_id=transaction_id,
-            data=jsonable_encoder(new_section)
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail={"transaction_id": transaction_id,
-                    "error": str(e)}
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"transaction_id": transaction_id,
-                    "error": f"An error occurred while creating the section: {str(e)}"}
-        )
-        
+
 @router.get("/{document_id}/executions")
 async def get_executions_by_doc_id(document_id: str,
                                    session: Session = Depends(get_session),

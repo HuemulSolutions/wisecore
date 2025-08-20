@@ -1,5 +1,6 @@
 from typing_extensions import TypedDict, List, Optional
 from .llms import get_llm
+from langchain_core.language_models import BaseChatModel
 from langgraph.types import Command, StreamWriter
 from .services import GraphServices
 from .utils import topological_sort
@@ -10,9 +11,9 @@ from src.database.core import get_graph_session
 from src.database.models import Document, Section, Status
 from rich import print
 
-llm = get_llm("gpt-4.1")
+# llm = get_llm("gpt-4.1")
 
-class State(TypedDict):
+class State(TypedDict): 
     document_id: str
     execution_id: str
     execution_instructions: Optional[str]
@@ -22,6 +23,7 @@ class State(TypedDict):
     sections: List[Section]
     sorted_sections_ids: List[dict]
     should_update: List[dict]
+    llm: BaseChatModel
     
 class Config(TypedDict):
     recursion_limit: int
@@ -37,8 +39,11 @@ async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> 
     """
     async with get_graph_session() as session:
         service = GraphServices(session)
-        state['document'], state['sections'] = await service.init_execution(state['document_id'],
-                                                                state['execution_id'], state.get('execution_instructions'))
+        state['document'], state['sections'] = await (service.init_execution(state['document_id'],
+                                                                      state['execution_id'], 
+                                                                      state.get('execution_instructions')))
+        llm_name = await service.get_llm_name(state['execution_id'])
+        state['llm'] = get_llm(llm_name)
         state['document_context'] = await service.get_document_context(state['document_id'])
     return state
 
@@ -98,6 +103,8 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
         section_description=section.prompt,
         additional_instructions=state.get('execution_instructions', '')
     )
+    
+    llm = state['llm']
     print("Executing section:", section.name)
     response = await llm.ainvoke(prompt)
     section = next(filter(lambda x: x.id == section.id, state['sections']), None)

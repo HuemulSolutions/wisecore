@@ -17,6 +17,21 @@ class GenerateDocument(BaseModel):
     execution_id: str
     instructions: Optional[str] = None
     
+class FixSection(BaseModel):
+    """
+    Schema for fixing a section in a document.
+    """
+    content: str
+    instructions: str
+    
+    
+class RedactSectionPrompt(BaseModel):
+    """
+    Schema for redacting or improving the prompt for a section.
+    """
+    name: str
+    content: Optional[str] = None  # Optional field, can be None
+    
     
 class CreateTemplate(BaseModel):
     """
@@ -37,12 +52,34 @@ class CreateTemplateSection(BaseModel):
     type: str = "text"  # Optional field, can be None
     
     
+class UpdateSection(BaseModel):
+    """
+    Schema for updating a template section.
+    """
+    name: str
+    prompt: str
+    dependencies: Optional[List[str]] = None  # Optional field, can be None
+    
 class CreateTemplateSectionDependency(BaseModel):
     """
     Schema for creating a dependency between template sections.
     """
     section_id: str
     depends_on_id: str
+    
+    
+class SectionOrder(BaseModel):
+    """
+    Schema for ordering template sections.
+    """
+    section_id: str
+    order: int
+
+class UpdateSectionOrder(BaseModel):
+    """
+    Schema for updating the order of template sections.
+    """
+    new_order: List[SectionOrder]
     
 class CreateDocument(BaseModel):
     """
@@ -71,9 +108,32 @@ class CreateDocumentSection(BaseModel):
     dependencies: Optional[List[str]] = None  # Optional field, can be None
     type: str = "text"  # Optional field, can be None
     
+    
+    
 class AddDocumentContextText(BaseModel):
     """
     Schema for adding context text to a document.
     """
     name: str
     content: str
+    
+    
+class ModifySection(BaseModel):
+    """
+    Schema for modifying a section's content.
+    """
+    content: str
+    
+class UpdateLLM(BaseModel):
+    """
+    Schema for updating the LLM used in an execution.
+    """
+    llm_id: str
+    
+    
+class CreateOrganization(BaseModel):
+    """
+    Schema for creating an organization.
+    """
+    name: str
+    description: Optional[str] = None  # Optional field, can be None
