@@ -45,7 +45,7 @@ async def stream_graph(document_id: str, execution_id: str, user_instructions: s
     except asyncio.CancelledError:
         raise
     except Exception as e:
-        with get_graph_session() as session:
+        async with get_graph_session() as session:
             service = GraphServices(session)
             await service.update_execution(execution_id, Status.FAILED, str(e))
         yield f"event: error\ndata: {str(e)}\n\n"
