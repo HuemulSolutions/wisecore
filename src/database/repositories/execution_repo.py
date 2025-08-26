@@ -46,7 +46,7 @@ class ExecutionRepo(BaseRepository[Execution]):
             "llm_id": execution.model_id
         }
         
-        if execution.status == Status.PENDING:
+        if execution.status == Status.PENDING or execution.status == Status.RUNNING:
             sorted_sections = sorted(execution.document.sections, key=lambda s: s.order)
             result_dict["sections"] = [
                 {"id": section.id,
@@ -64,10 +64,10 @@ class ExecutionRepo(BaseRepository[Execution]):
                 elif section_exec.output:
                     output = section_exec.output
                 sections.append({
-                    "id": section_exec.section.id,
+                    "id": None,
                     "section_execution_id": section_exec.id,
-                    "name": section_exec.section.name,
-                    "prompt": section_exec.section.prompt,
+                    "name": section_exec.name,
+                    "prompt": section_exec.prompt,
                     "output": output
                 })
             result_dict["sections"] = sections

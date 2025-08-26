@@ -95,11 +95,12 @@ class GraphServices():
         await self.execution_repo.add(execution)
         return execution
         
-    async def save_section_execution(self, section_id: str, execution_id: str, output: str, prompt: str, order: int) -> SectionExecution:
+    async def save_section_execution(self, section_id: str, name: str, execution_id: str, output: str, prompt: str, order: int) -> SectionExecution:
         """
         Save the section execution to the database.
         """
         new_section_execution = SectionExecution(
+            name=name,
             section_id=section_id,
             execution_id=execution_id,
             output=output,
