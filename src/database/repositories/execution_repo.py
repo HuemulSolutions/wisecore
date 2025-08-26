@@ -99,3 +99,6 @@ class ExecutionRepo(BaseRepository[Execution]):
             execution.user_instruction = instructions
         await self.session.flush()
         return execution
+    
+    
+    # async def get_execution_to_chunking(self, execution_id: str)

@@ -179,7 +179,9 @@ async def modify_section_content(section_execution_id: str,
                 detail={"transaction_id": transaction_id,
                         "error": f"An error occurred while modifying the section content: {str(e)}"}
             )
-        
+            
+            
+
 @router.get("/export_markdown/{execution_id}")
 async def export_execution(execution_id: str, 
                            session: Session = Depends(get_session),

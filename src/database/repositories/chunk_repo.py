@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 from openai import AzureOpenAI
 from ..models import Chunk
 from src.config import system_config
+from typing import List
 
 class ChunkRepo(BaseRepository[Chunk]):
     def __init__(self, session: AsyncSession):
@@ -24,6 +25,16 @@ class ChunkRepo(BaseRepository[Chunk]):
             input=text,
         )
         return embedding.data[0].embedding
+        
+    async def create_chunks(self, chunks: List[Chunk]) -> List[Chunk]:
+        """
+        Create multiple chunks in the database.
+        """
+        self.session.add_all(chunks)
+        await self.session.commit()
+        for chunk in chunks:
+            await self.session.refresh(chunk)
+        return chunks
         
     async def search_by_embedding(self, text: str, organization_id: str = None, limit: int = 10):
         """
