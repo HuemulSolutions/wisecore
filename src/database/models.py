@@ -170,7 +170,6 @@ class Section(BaseClass):
     external_dependents = relationship("Dependency", foreign_keys="Dependency.depends_on_section_id", back_populates="depends_on_section")
     
     section_executions = relationship("SectionExecution", back_populates="section", passive_deletes=True)
-    chunks = relationship("Chunk", back_populates="section")
     
     @property
     def internal_section_dependencies(self):
@@ -229,6 +228,7 @@ class Execution(BaseClass):
 class SectionExecution(BaseClass):
     __tablename__ = "section_execution"
 
+    name = Column(String, nullable=True) # Cambiar después de migración
     user_instruction = Column(String, nullable=True)
     prompt = Column(String, nullable=True)
     order = Column(Integer, nullable=False)
@@ -238,8 +238,10 @@ class SectionExecution(BaseClass):
     section_id = Column(UUID(as_uuid=True), ForeignKey("section.id", ondelete="SET NULL"), nullable=True)
     execution_id = Column(UUID(as_uuid=True), ForeignKey("execution.id"), nullable=False)
     
+    
     section = relationship("Section", back_populates="section_executions")
     execution = relationship("Execution", back_populates="sections_executions")
+    chunks = relationship("Chunk", back_populates="section_execution")
     
     def __repr__(self):
         return f"<SectionExecution(id={self.id}, user_instruction='{self.user_instruction}', output='{self.output}')>"
@@ -250,9 +252,9 @@ class Chunk(BaseClass):
 
     content = Column(String, nullable=False)
     embedding = Column(Vector(3072), nullable=False)
-    section_id = Column(UUID(as_uuid=True), ForeignKey("section.id"), nullable=False)
+    section_execution_id = Column(UUID(as_uuid=True), ForeignKey("section_execution.id"), nullable=False)
     
-    section = relationship("Section", back_populates="chunks")
+    section_execution = relationship("SectionExecution", back_populates="chunks")
 
 
 

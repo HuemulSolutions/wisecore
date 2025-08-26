@@ -184,6 +184,7 @@ async def save_section_execution(state: State, config: BaseConfig) -> State:
         section = next(filter(lambda x: x.id == state['current_section'].id, state['sections']), None)
         await service.save_section_execution(
             section_id=section.id,
+            name=section.name,
             execution_id=state['execution_id'],
             output=section.output,
             prompt=section.prompt,
