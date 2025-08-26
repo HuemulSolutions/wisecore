@@ -29,43 +29,63 @@ async def stream_generation(request: GenerateDocument):
         
         
 
+# @router.post("/generate_document")
+# async def generate_document(request: GenerateDocument):
+#     try:
+#         # Crea la cola
+#         q: asyncio.Queue = asyncio.Queue(maxsize=100)
+        
+#         # Crea el worker desacoplado y mantén la referencia
+#         worker_task = asyncio.create_task(run_graph_worker(
+#             document_id=request.document_id,
+#             execution_id=request.execution_id,
+#             user_instructions=request.instructions,
+#             q=q
+#         ))
+        
+#         # Guarda la referencia para evitar garbage collection
+#         _active_tasks.add(worker_task)
+        
+#         # Añade callback para limpiar cuando termine
+#         def cleanup_task(task):
+#             _active_tasks.discard(task)
+        
+#         worker_task.add_done_callback(cleanup_task)
+
+#         # Devuelve un StreamingResponse que solo drena la cola
+#         return StreamingResponse(
+#             stream_queue(q),
+#             media_type="text/event-stream",
+#             headers={
+#                 "Cache-Control": "no-cache",
+#                 "Connection": "keep-alive",
+#                 "X-Accel-Buffering": "no",
+#             },
+#         )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"An error occurred while generating the document: {str(e)}"
+#         )
+
 @router.post("/generate_document")
 async def generate_document(request: GenerateDocument):
+    """
+    Generate a document and stream the output.
+    """
     try:
-        # Crea la cola
-        q: asyncio.Queue = asyncio.Queue(maxsize=100)
-        
-        # Crea el worker desacoplado y mantén la referencia
-        worker_task = asyncio.create_task(run_graph_worker(
-            document_id=request.document_id,
-            execution_id=request.execution_id,
-            user_instructions=request.instructions,
-            q=q
-        ))
-        
-        # Guarda la referencia para evitar garbage collection
-        _active_tasks.add(worker_task)
-        
-        # Añade callback para limpiar cuando termine
-        def cleanup_task(task):
-            _active_tasks.discard(task)
-        
-        worker_task.add_done_callback(cleanup_task)
-
-        # Devuelve un StreamingResponse que solo drena la cola
         return StreamingResponse(
-            stream_queue(q),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            },
+            stream_graph(request.document_id, request.execution_id, request.instructions),
+            media_type="text/event-stream")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An error occurred while generating the document: {str(e)}"
         )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"An error occurred while generating the document: {str(e)}"
+            detail=f"An unexpected error occurred: {str(e)}"
         )
         
         

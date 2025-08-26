@@ -109,7 +109,7 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
         document_description=f"{state['document'].name}: {state['document'].description}",
         context=state['document_context'],
         past_sections=section.dependencies_content,
-        section_description=section.prompt,
+        section_description=f"Nombre sección: {section.name}\nDescripción: {section.prompt}",
         additional_instructions=state.get('execution_instructions', '')
     )
     
