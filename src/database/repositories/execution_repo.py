@@ -90,6 +90,8 @@ class ExecutionRepo(BaseRepository[Execution]):
         execution = await self.get_execution(execution_id)
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
+        if execution.status == Status.RUNNING and status == Status.PENDING:
+            raise ValueError("Cannot change status from RUNNING to PENDING.")
         
         execution.status = status
         execution.status_message = message
