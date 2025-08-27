@@ -200,7 +200,7 @@ class ChunkService:
         Generate chunks for a specific execution.
         Returns the number of chunks created.
         """
-        execution = await ExecutionRepo(self.session).get_execution(execution_id)
+        execution = await ExecutionRepo(self.session).get_execution_to_chunking(execution_id)
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         if execution.status != Status.COMPLETED:
@@ -231,4 +231,12 @@ class ChunkService:
             await self.chunk_repo.create_chunks(all_chunks)
 
         return len(all_chunks)
+    
+    async def search_chunks(self, query: str, top_k: int = 5) -> List[Chunk]:
+        """
+        Search for chunks similar to the query using vector similarity.
+        """
+        query_embedding = self.create_embeddings(query)
+        results = await self.chunk_repo.search_by_embedding(query_embedding)
+        return results
 

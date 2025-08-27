@@ -101,4 +101,12 @@ class ExecutionRepo(BaseRepository[Execution]):
         return execution
     
     
-    # async def get_execution_to_chunking(self, execution_id: str)
+    async def get_execution_to_chunking(self, execution_id: str) -> Execution:
+        """
+        Retrieve an execution by its ID with the associated section executions
+        """
+        query = (select(self.model)
+                 .options(joinedload(self.model.sections_executions))
+                 .where(self.model.id == execution_id))
+        result = await self.session.execute(query)
+        return result.unique().scalar_one_or_none()

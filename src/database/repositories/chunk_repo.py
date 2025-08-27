@@ -1,10 +1,14 @@
 from .base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 from openai import AzureOpenAI
-from ..models import Chunk
+from ..models import Chunk, SectionExecution, Execution, Document
 from src.config import system_config
 from typing import List
+
+
+DISTANCE = 0.75  # Similarity threshold
 
 class ChunkRepo(BaseRepository[Chunk]):
     def __init__(self, session: AsyncSession):
@@ -36,17 +40,37 @@ class ChunkRepo(BaseRepository[Chunk]):
             await self.session.refresh(chunk)
         return chunks
         
-    async def search_by_embedding(self, text: str, organization_id: str = None, limit: int = 10):
+    async def search_by_embedding(self, embedded_query: str, limit: int = 5) -> List[dict]:
         """
         Search for chunks by embedding similarity.
         """
-        query = select(self.model).where(
-            self.model.organization_id == organization_id,
-            self.model.embedding.similarity(text) > 0.8
-        ).limit(limit)
+        distance = self.model.embedding.cosine_distance(embedded_query).label("distance")
+        query = (
+            select(self.model)
+            .options(
+                joinedload(self.model.section_execution).joinedload(SectionExecution.execution).joinedload(Execution.document)
+            )
+            .where(distance <= DISTANCE)
+            .order_by(distance)
+            .limit(limit)
+        )
         
         result = await self.session.execute(query)
-        return result.scalars().all()
+        chunks = result.scalars().unique().all()
+        
+        # Return chunks with additional information
+        enriched_chunks = []
+        for chunk in chunks:
+            chunk_data = {
+                'content': chunk.content,
+                'execution_id': chunk.section_execution.execution_id,
+                'document_id': chunk.section_execution.execution.document_id,
+                'document_name': chunk.section_execution.execution.document.name,
+                'section_execution_name': chunk.section_execution.name
+            }
+            enriched_chunks.append(chunk_data)
+        
+        return enriched_chunks
     
     
     

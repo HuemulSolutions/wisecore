@@ -35,4 +35,27 @@ async def generate_chunks(execution_id: str,
                 detail={"transaction_id": transaction_id,
                         "error": f"An error occurred while generating chunks: {str(e)}"}
             )
+            
+            
+@router.get("/search")
+async def search_chunks(query: str,
+                        session: Session = Depends(get_session),
+                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Search for chunks containing the query string.
+    """
+    try:
+        chunk_service = ChunkService(session)
+        result = await chunk_service.search_chunks(query)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=result
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while searching for chunks: {str(e)}"}
+        )
         
