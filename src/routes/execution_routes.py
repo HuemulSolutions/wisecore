@@ -121,6 +121,34 @@ async def delete_execution(execution_id: str,
                     "error": f"An error occurred while deleting the execution: {str(e)}"}
         )
         
+@router.post("/approve/{execution_id}")
+async def approve_execution(execution_id: str,
+                            session: Session = Depends(get_session),
+                            transaction_id: str = Depends(get_transaction_id)):
+    """
+    Approve an execution by its ID.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        await execution_service.approve_execution(execution_id)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data={"message": f"Execution {execution_id} approved successfully."}
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while approving the execution: {str(e)}"}
+        )
+        
         
 @router.put("/update_llm/{execution_id}")
 async def update_llm(execution_id: str,

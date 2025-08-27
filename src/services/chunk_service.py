@@ -239,4 +239,18 @@ class ChunkService:
         query_embedding = self.create_embeddings(query)
         results = await self.chunk_repo.search_by_embedding(query_embedding)
         return results
+    
+    async def delete_chunks_by_execution(self, execution_id: str):
+        """
+        Delete all chunks associated with a specific execution.
+        Returns the number of chunks deleted.
+        """
+        execution = await ExecutionRepo(self.session).get_execution_to_chunking(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        
+        await self.chunk_repo.delete_chunks_by_execution_id(execution_id)
+        
+        
+        
 

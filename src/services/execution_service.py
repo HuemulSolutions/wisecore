@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.repositories.execution_repo import ExecutionRepo
 from src.database.repositories.sectionexec_repo import SectionExecRepo
+from src.services.chunk_service import ChunkService
 from src.database.repositories.llm_repo import LLMRepo
 from src.database.models import Execution, Status
 from src.config import system_config
@@ -115,4 +116,32 @@ class ExecutionService:
         )
         export_data = "\n\n-------\n\n".join([i.output for i in sorted_execs])
         return export_data
+    
+    
+    async def approve_execution(self, execution_id: str):
+        """
+        Check if other executions of the same document are approved,
+        if so replace the status to completed.
+        Change the status of the execution to APPROVED.
+        """
+        execution = await self.execution_repo.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        
+        chunk_service = ChunkService(self.session)
+        try:
+            await chunk_service.generate_chunks(execution_id)
+        except Exception as e:
+            raise ValueError(f"Failed to generate chunks for execution ID {execution_id}: {str(e)}")
+        
+        # Check if there are other approved executions for the same document
+        past_approved_execution = await self.execution_repo.get_approved_execution_by_doc_id(execution.document_id)
+        if past_approved_execution:
+            past_approved_execution.status = Status.COMPLETED
+            await self.execution_repo.update(past_approved_execution)
+            await chunk_service.delete_chunks_by_execution(past_approved_execution.id)
+            
+        execution.status = Status.APPROVED
+        updated_execution = await self.execution_repo.update(execution)
+        return updated_execution
         

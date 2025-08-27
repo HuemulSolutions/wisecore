@@ -72,6 +72,28 @@ class ChunkRepo(BaseRepository[Chunk]):
         
         return enriched_chunks
     
+    async def delete_chunks_by_execution_id(self, execution_id: str) -> int:
+        """
+        Delete chunks associated with a specific execution ID.
+        Returns the number of deleted chunks.
+        """
+        query = (
+            select(Chunk)
+            .join(Chunk.section_execution)
+            .where(SectionExecution.execution_id == execution_id)
+        )
+        result = await self.session.execute(query)
+        chunks_to_delete = result.scalars().all()
+        
+        if not chunks_to_delete:
+            return 0
+        
+        for chunk in chunks_to_delete:
+            await self.session.delete(chunk)
+        
+        await self.session.commit()
+        return len(chunks_to_delete)
+    
     
     
                 

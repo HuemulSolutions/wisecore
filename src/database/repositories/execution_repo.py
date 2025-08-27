@@ -110,3 +110,13 @@ class ExecutionRepo(BaseRepository[Execution]):
                  .where(self.model.id == execution_id))
         result = await self.session.execute(query)
         return result.unique().scalar_one_or_none()
+    
+    async def get_approved_execution_by_doc_id(self, document_id: str) -> Execution:
+        """
+        Retrieve the latest approved execution for a specific document.
+        """
+        query = (select(self.model)
+                 .where(self.model.document_id == document_id, self.model.status == Status.APPROVED)
+                 .order_by(self.model.created_at.desc()))
+        result = await self.session.execute(query)
+        return result.scalars().first()
