@@ -30,6 +30,19 @@ class Organization(BaseClass):
         return f"<Organization(id={self.id}, name='{self.name}')>"
 
 
+class DocumentType(BaseClass):
+    __tablename__ = "document_type"
+    
+    name = Column(String, nullable=False)
+    color = Column(String, nullable=False)
+    
+    
+    documents = relationship("Document", back_populates="document_type")
+    
+    def __repr__(self):
+        return f"<DocumentType(id={self.id}, name='{self.name}')>"
+
+
 class Dependency(BaseClass):
     __tablename__ = "dependency"
     
@@ -119,9 +132,11 @@ class Document(BaseClass):
     description = Column(String, nullable=False)
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
     template_id = Column(UUID(as_uuid=True), ForeignKey("template.id"), nullable=True)
+    document_type_id = Column(UUID(as_uuid=True), ForeignKey("document_type.id"), nullable=False)
     
     organization = relationship("Organization", back_populates="documents")
     template = relationship("Template", back_populates="documents")
+    document_type = relationship("DocumentType", back_populates="documents")
     executions = relationship("Execution", back_populates="document")
     sections = relationship("Section", back_populates="document", cascade="all, delete-orphan")
 

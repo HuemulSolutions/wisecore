@@ -88,6 +88,7 @@ class CreateDocument(BaseModel):
     name: str
     description: str
     organization_id: str
+    document_type_id: str
     template_id: Optional[str] = None  # Optional field, can be None
 
 class CreateDocumentDependency(BaseModel):
@@ -137,3 +138,11 @@ class CreateOrganization(BaseModel):
     """
     name: str
     description: Optional[str] = None  # Optional field, can be None
+
+
+class CreateDocumentType(BaseModel):
+    """
+    Schema for creating a document type.
+    """
+    name: str
+    color: str

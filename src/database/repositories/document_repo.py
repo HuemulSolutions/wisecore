@@ -9,22 +9,34 @@ class DocumentRepo(BaseRepository[Document]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Document)
         
-    async def get_all_documents(self, organization_id: str = None, limit: int = 100, offset: int = 0):
+    async def get_all_documents(self, organization_id: str = None, document_type_id: str = None) -> list[dict]:
         """
         Retrieve all documents with optional pagination, including template name.
         """
-        query = select(self.model).options(selectinload(Document.template))
+        query = select(self.model).options(
+            selectinload(Document.template),
+            selectinload(Document.document_type)
+            )
         
         if organization_id:
             query = query.where(self.model.organization_id == organization_id)
             
-        query = query.order_by(self.model.created_at.desc()).limit(limit).offset(offset)
+        if document_type_id:
+            query = query.where(self.model.document_type_id == document_type_id)
+            
+        query = query.order_by(self.model.created_at.desc())
         result = await self.session.execute(query)
         documents = result.scalars().all()
         return [
             {
                 **doc.__dict__,
-                'template_name': doc.template.name if doc.template else None
+                'template_name': doc.template.name if doc.template else None,
+                'document_type': {
+                    'id': doc.document_type.id,
+                    'name': doc.document_type.name,
+                    'color': doc.document_type.color
+                } if doc.document_type else None
+                
             }
             for doc in documents
         ]
@@ -47,6 +59,7 @@ class DocumentRepo(BaseRepository[Document]):
                 selectinload(Document.organization),
                 selectinload(Document.template),
                 selectinload(Document.executions),
+                selectinload(Document.document_type),
                 selectinload(Document.sections)
                 .selectinload(Section.internal_dependencies)
                 .selectinload(InnerDependency.depends_on_section)
@@ -72,6 +85,11 @@ class DocumentRepo(BaseRepository[Document]):
             "template_name": doc.template.name if doc.template else None,
             "created_at": doc.created_at,
             "updated_at": doc.updated_at,
+            "document_type": {
+                "id": doc.document_type.id,
+                "name": doc.document_type.name,
+                "color": doc.document_type.color
+            },
             "executions": [
                 {
                     "id": execution.id,

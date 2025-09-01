@@ -70,7 +70,8 @@ async def delete_document(document_id: str,
             )
         
 @router.get("/")
-async def get_all_documents(organization_id: str = None, 
+async def get_all_documents(organization_id: str = None,
+                            document_type_id: str = None, 
                             session: Session = Depends(get_session),
                             transaction_id: str = Depends(get_transaction_id)):
     """
@@ -78,7 +79,7 @@ async def get_all_documents(organization_id: str = None,
     """
     document_service = DocumentService(session)
     try:
-        documents = await document_service.get_all_documents(organization_id)
+        documents = await document_service.get_all_documents(organization_id, document_type_id)
         return ResponseSchema(
             transaction_id=transaction_id,
             data=jsonable_encoder(documents)
@@ -109,6 +110,7 @@ async def create_document(create_document: CreateDocument,
             name=create_document.name,
             description=create_document.description,
             organization_id=create_document.organization_id,
+            document_type_id=create_document.document_type_id,
             template_id=create_document.template_id
         )
         return ResponseSchema(
