@@ -114,7 +114,7 @@ class ExecutionService:
             section_execs,
             key=lambda x: (x.section.order)
         )
-        export_data = "\n\n-------\n\n".join([i.output for i in sorted_execs])
+        export_data = "\n\n-------\n\n".join([i.custom_output if i.custom_output else i.output for i in sorted_execs])
         return export_data
     
     

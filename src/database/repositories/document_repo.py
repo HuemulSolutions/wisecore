@@ -1,6 +1,6 @@
 from .base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models import Document, InnerDependency, Section, Organization
+from ..models import Document, InnerDependency, Section, Execution, Status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
@@ -137,7 +137,8 @@ class DocumentRepo(BaseRepository[Document]):
             select(self.model)
             .options(
                 selectinload(Document.sections)
-                .selectinload(Section.section_executions)
+                .selectinload(Section.section_executions),
+                selectinload(Document.executions)
             )
             .where(self.model.id == document_id)
         )
@@ -147,22 +148,46 @@ class DocumentRepo(BaseRepository[Document]):
         if not document:
             raise ValueError(f"Document with ID {document_id} not found.")
         
-        content = f"# Document {document.name}\n\n"
-        for section in document.sections:
-            # Get the latest section execution output
-            latest_execution = None
-            if section.section_executions:
-                latest_execution = max(section.section_executions, key=lambda x: x.created_at)
+        if not document.executions:
+            return None
+        
+        # Find approved execution or latest completed execution
+        approved_execution = None
+        latest_completed_execution = None
+        
+        for execution in document.executions:
+            print(execution.status.value)
+            if execution.status == Status.APPROVED:
+                approved_execution = execution
+                break
+            elif execution.status == Status.COMPLETED:
+                if not latest_completed_execution or execution.created_at > latest_completed_execution.created_at:
+                    latest_completed_execution = execution
+        
+        target_execution = approved_execution or latest_completed_execution
+        
+        if not target_execution:
+            return None
+        
+        content = ""
+        sections = sorted(document.sections, key=lambda s: s.order)
+        for section in sections:
+            # Get section execution from target execution
+            section_execution = None
+            for sec_exec in section.section_executions:
+                if sec_exec.execution_id == target_execution.id:
+                    section_execution = sec_exec
+                    break
             
-            # section_content = latest_execution.custom_output if latest_execution and latest_execution.custom_output else latest_execution.output if latest_execution else section.output
-            section_content = None
-            if latest_execution:
-                if latest_execution.custom_output:
-                    section_content = latest_execution.custom_output
-                elif latest_execution.output:
-                    section_content = latest_execution.output
+            if section_execution:
+                if section_execution.custom_output:
+                    section_content = section_execution.custom_output
+                elif section_execution.output:
+                    section_content = section_execution.output
+                else:
+                    continue
                 content += f"{section_content}\n\n"
-        return content
+        return content if content.strip() else None
     
     async def get_document_context(self, document_id: UUID) -> str:
         """

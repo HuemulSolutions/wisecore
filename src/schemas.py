@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 from datetime import timezone
 from typing import Union, Optional, List
 
 class ResponseSchema(BaseModel):
-    data: Union[dict, list]
+    data: Union[dict, list, str, None] = None
     transaction_id: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
@@ -38,7 +38,6 @@ class CreateTemplate(BaseModel):
     Schema for creating a template.
     """
     name: str
-    organization_id: str
     description: Optional[str] = None  # Optional field, can be None
     
 class CreateTemplateSection(BaseModel):
@@ -87,9 +86,18 @@ class CreateDocument(BaseModel):
     """
     name: str
     description: str
-    organization_id: str
     document_type_id: str
     template_id: Optional[str] = None  # Optional field, can be None
+    
+class CreateDocumentLibrary(BaseModel):
+    """
+    Schema for creating a document in the library.
+    """
+    name: str
+    description: str 
+    document_type_id: str
+    template_id: Optional[str] = None  # Optional field, can be None
+    folder_id: Optional[str] = None  # Optional field, can be None
 
 class CreateDocumentDependency(BaseModel):
     """
@@ -146,3 +154,17 @@ class CreateDocumentType(BaseModel):
     """
     name: str
     color: str
+    
+class CreateNewFolder(BaseModel):
+    """
+    Schema for creating a new folder.
+    """
+    name: str
+    organization_id: Optional[str] = None
+    parent_folder_id: Optional[str] = None
+    
+    @model_validator(mode='after')
+    def validate_folder_parent(self):
+        if self.organization_id is None and self.parent_folder_id is None:
+            raise ValueError('Al menos uno de organization_id o parent_folder_id debe ser proporcionado')
+        return self

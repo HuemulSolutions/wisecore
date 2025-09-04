@@ -25,9 +25,40 @@ class Organization(BaseClass):
     
     documents = relationship("Document", back_populates="organization")
     templates = relationship("Template", back_populates="organization")
+    folders = relationship("Folder", back_populates="organization")
     
     def __repr__(self):
         return f"<Organization(id={self.id}, name='{self.name}')>"
+
+
+class Folder(BaseClass):
+    __tablename__ = "folder"
+    
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
+    parent_folder_id = Column(UUID(as_uuid=True), ForeignKey("folder.id"), nullable=True)
+    
+    # Relaciones
+    organization = relationship("Organization", back_populates="folders")
+    parent_folder = relationship("Folder", remote_side="Folder.id", back_populates="subfolders")
+    subfolders = relationship("Folder", back_populates="parent_folder", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="folder")
+    
+    def __repr__(self):
+        return f"<Folder(id={self.id}, name='{self.name}', parent_id={self.parent_folder_id})>"
+    
+    @property
+    def full_path(self):
+        """Retorna la ruta completa de la carpeta"""
+        if self.parent_folder:
+            return f"{self.parent_folder.full_path}/{self.name}"
+        return self.name
+    
+    @property
+    def is_root(self):
+        """Indica si es una carpeta raíz (sin padre)"""
+        return self.parent_folder_id is None
 
 
 class DocumentType(BaseClass):
@@ -133,10 +164,12 @@ class Document(BaseClass):
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
     template_id = Column(UUID(as_uuid=True), ForeignKey("template.id"), nullable=True)
     document_type_id = Column(UUID(as_uuid=True), ForeignKey("document_type.id"), nullable=False)
+    folder_id = Column(UUID(as_uuid=True), ForeignKey("folder.id"), nullable=True)
     
     organization = relationship("Organization", back_populates="documents")
     template = relationship("Template", back_populates="documents")
     document_type = relationship("DocumentType", back_populates="documents")
+    folder = relationship("Folder", back_populates="documents")
     executions = relationship("Execution", back_populates="document")
     sections = relationship("Section", back_populates="document", cascade="all, delete-orphan")
 

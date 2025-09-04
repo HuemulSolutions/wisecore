@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
-from src.utils import get_transaction_id
+from src.utils import get_transaction_id, get_organization_id
 from src.services.template_service import TemplateService
 from src.services.template_section_service import TemplateSectionService
 from src.schemas import (ResponseSchema, CreateTemplate, CreateTemplateSection, 
@@ -13,14 +13,16 @@ router = APIRouter(prefix="/templates")
 
 
 @router.get("/")
-async def get_all_templates(session: Session = Depends(get_session),
+async def get_all_templates(organization_id: str = Depends(get_organization_id),
+                            session: Session = Depends(get_session),
                             transaction_id: str = Depends(get_transaction_id)):
     """
     Retrieve all templates.
     """
+    print("Organization ID:", organization_id)  # Debugging line
     template_service = TemplateService(session)
     try:
-        templates = await template_service.get_all_templates()
+        templates = await template_service.get_all_templates(organization_id)
         response = ResponseSchema(
             transaction_id=transaction_id,
             data=jsonable_encoder(templates)
@@ -64,6 +66,7 @@ async def get_template(template_id: str,
         
 @router.post("/")
 async def create_template(template: CreateTemplate,
+                          organization_id: str = Depends(get_organization_id),
                           session: Session = Depends(get_session),
                           transaction_id: str = Depends(get_transaction_id)):
     """
