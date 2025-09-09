@@ -168,3 +168,11 @@ class CreateNewFolder(BaseModel):
         if self.organization_id is None and self.parent_folder_id is None:
             raise ValueError('Al menos uno de organization_id o parent_folder_id debe ser proporcionado')
         return self
+    
+class Chatbot(BaseModel):
+    """
+    Schema for chatbot interaction.
+    """
+    execution_id: str
+    thread_id: Optional[str] = None  # Optional field, can be None
+    user_message: str

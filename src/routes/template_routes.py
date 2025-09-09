@@ -74,8 +74,8 @@ async def create_template(template: CreateTemplate,
     """
     template_service = TemplateService(session)
     try:
-        template = await template_service.create_template(template.name,
-                                                          template.organization_id, 
+        template = await template_service.create_template(name=template.name,
+                                                          organization_id=organization_id, 
                                                           description=template.description)
         response = ResponseSchema(
             transaction_id=transaction_id,
