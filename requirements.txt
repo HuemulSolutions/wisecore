@@ -65,6 +65,7 @@ langchain-text-splitters==0.3.8
 langgraph==0.4.5
 langgraph-api==0.2.27
 langgraph-checkpoint==2.0.26
+langgraph-checkpoint-postgres==2.0.21
 langgraph-cli==0.2.10
 langgraph-prebuilt==0.1.8
 langgraph-runtime-inmem==0.0.11
