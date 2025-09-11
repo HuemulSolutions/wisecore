@@ -46,7 +46,7 @@ class ExecutionRepo(BaseRepository[Execution]):
             "llm_id": execution.model_id
         }
         
-        if execution.status == Status.PENDING:
+        if execution.status == Status.PENDING or execution.status == Status.RUNNING:
             sorted_sections = sorted(execution.document.sections, key=lambda s: s.order)
             result_dict["sections"] = [
                 {"id": section.id,
@@ -64,10 +64,10 @@ class ExecutionRepo(BaseRepository[Execution]):
                 elif section_exec.output:
                     output = section_exec.output
                 sections.append({
-                    "id": section_exec.section.id,
+                    "id": None,
                     "section_execution_id": section_exec.id,
-                    "name": section_exec.section.name,
-                    "prompt": section_exec.section.prompt,
+                    "name": section_exec.name,
+                    "prompt": section_exec.prompt,
                     "output": output
                 })
             result_dict["sections"] = sections
@@ -90,6 +90,8 @@ class ExecutionRepo(BaseRepository[Execution]):
         execution = await self.get_execution(execution_id)
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
+        if execution.status == Status.RUNNING and status == Status.PENDING:
+            raise ValueError("Cannot change status from RUNNING to PENDING.")
         
         execution.status = status
         execution.status_message = message
@@ -97,3 +99,24 @@ class ExecutionRepo(BaseRepository[Execution]):
             execution.user_instruction = instructions
         await self.session.flush()
         return execution
+    
+    
+    async def get_execution_to_chunking(self, execution_id: str) -> Execution:
+        """
+        Retrieve an execution by its ID with the associated section executions
+        """
+        query = (select(self.model)
+                 .options(joinedload(self.model.sections_executions))
+                 .where(self.model.id == execution_id))
+        result = await self.session.execute(query)
+        return result.unique().scalar_one_or_none()
+    
+    async def get_approved_execution_by_doc_id(self, document_id: str) -> Execution:
+        """
+        Retrieve the latest approved execution for a specific document.
+        """
+        query = (select(self.model)
+                 .where(self.model.document_id == document_id, self.model.status == Status.APPROVED)
+                 .order_by(self.model.created_at.desc()))
+        result = await self.session.execute(query)
+        return result.scalars().first()

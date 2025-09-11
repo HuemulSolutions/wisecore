@@ -24,6 +24,7 @@ class State(TypedDict):
     sorted_sections_ids: List[dict]
     should_update: List[dict]
     llm: BaseChatModel
+    section_outputs: dict  # Diccionario para almacenar outputs de secciones
     
 class Config(TypedDict):
     recursion_limit: int
@@ -45,6 +46,8 @@ async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> 
         llm_name = await service.get_llm_name(state['execution_id'])
         state['llm'] = get_llm(llm_name)
         state['document_context'] = await service.get_document_context(state['document_id'])
+        # Inicializar diccionario para outputs de secciones
+        state['section_outputs'] = {}
     return state
 
 
@@ -78,13 +81,19 @@ async def get_dependencies(state: State, config: BaseConfig) -> State:
     """
     print("Getting dependencies for section:", state['current_section'].name)
     
+    # Inicializar diccionario si no existe
+    if 'section_outputs' not in state:
+        state['section_outputs'] = {}
+    
     dependency_content = []
     for dependency in state['current_section'].dependencies:
         print("Dependency:", dependency)
         print(state['sections'])
         dep_section = next(filter(lambda x: str(x.id) == dependency["id"], state['sections']), None)
         if dep_section:
-            dependency_content.append(dep_section.output)
+            # Obtener output del diccionario del state
+            section_output = state['section_outputs'].get(str(dep_section.id), "")
+            dependency_content.append(section_output)
         else:
             raise ValueError(f"Dependency with ID {dependency['id']} not found in sections.")
     state['current_section'].dependencies_content = "\n".join(dependency_content)
@@ -100,15 +109,20 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
         document_description=f"{state['document'].name}: {state['document'].description}",
         context=state['document_context'],
         past_sections=section.dependencies_content,
-        section_description=section.prompt,
+        section_description=f"Nombre sección: {section.name}\nDescripción: {section.prompt}",
         additional_instructions=state.get('execution_instructions', '')
     )
     
     llm = state['llm']
     print("Executing section:", section.name)
     response = await llm.ainvoke(prompt)
-    section = next(filter(lambda x: x.id == section.id, state['sections']), None)
-    section.output = response.content
+    
+    # Inicializar diccionario si no existe
+    if 'section_outputs' not in state:
+        state['section_outputs'] = {}
+    
+    # Guardar output en el diccionario del state
+    state['section_outputs'][str(section.id)] = response.content
     return state
 
 
@@ -181,11 +195,16 @@ async def save_section_execution(state: State, config: BaseConfig) -> State:
     """
     async with get_graph_session() as session:
         service = GraphServices(session)
-        section = next(filter(lambda x: x.id == state['current_section'].id, state['sections']), None)
+        section = state['current_section']
+        
+        # Obtener output del diccionario del state
+        section_output = state['section_outputs'].get(str(section.id), "")
+        
         await service.save_section_execution(
             section_id=section.id,
+            name=section.name,
             execution_id=state['execution_id'],
-            output=section.output,
+            output=section_output,
             prompt=section.prompt,
             order=section.order
         )

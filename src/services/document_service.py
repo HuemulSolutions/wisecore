@@ -47,11 +47,11 @@ class DocumentService:
         await self.document_repo.delete(document)
         return True
     
-    async def get_all_documents(self, organization_id: str = None):
+    async def get_all_documents(self, organization_id: str = None, document_type_id: str = None):
         """
         Retrieve all documents.
         """
-        documents = await self.document_repo.get_all_documents(organization_id)
+        documents = await self.document_repo.get_all_documents(organization_id, document_type_id)
         return documents
     
     async def get_document_sections(self, document_id: str):
@@ -61,7 +61,9 @@ class DocumentService:
         sections = await self.section_repo.get_sections_by_doc_id(document_id)
         return sections
     
-    async def create_document(self, name: str, description: str, organization_id: str, template_id: str = None):
+    async def create_document(self, name: str, description: str, organization_id: str, 
+                              document_type_id: str, template_id: str = None,
+                              folder_id: str = None):
         """
         Create a new document.
         """
@@ -76,7 +78,9 @@ class DocumentService:
             raise ValueError(f"Document with name {name} already exists.")
         
         new_document = Document(name=name, description=description,
-                                organization_id=organization_id, template_id=template_id)
+                                organization_id=organization_id,
+                                document_type_id=document_type_id,
+                                template_id=template_id, folder_id=folder_id)
         await self.document_repo.add(new_document)
         
         # If template_id is provided, copy template sections to document sections
@@ -138,5 +142,23 @@ class DocumentService:
         new_execution = await self.execution_repo.add(new_execution)
         return new_execution
     
+    
+    async def get_document_content(self, document_id: str):
+        """
+        Retrieve the content of a document by its ID.
+        Check if there is an approved execution; if not, it retrives the latest completed execution.
+        """
+        document = await self.document_repo.get_by_id(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        
+        content = None
+        content = await self.document_repo.get_document_content(document_id)
+        response = {
+            "document_id": document['id'],
+            "document_type": document["document_type"],
+            "content": content
+        }
+        return response
     
     

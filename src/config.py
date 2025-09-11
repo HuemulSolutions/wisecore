@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 from dataclasses import dataclass, fields
 # Load environment variables from .env file
-# load_dotenv()
-load_dotenv(dotenv_path=Path(".env.dev"))
+load_dotenv()
+# load_dotenv(dotenv_path=Path(".env.dev"))
 
 @dataclass
 class Config:
@@ -18,6 +18,8 @@ class Config:
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "LOCAL")
     ALEMBIC_DATABASE_URL: str = os.getenv("ALEMBIC_DATABASE_URL", "")
     DEFAULT_LLM: str = os.getenv("DEFAULT_LLM", "gpt-4.1")
+    AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY")
+    AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT")
 
     def __post_init__(self):
         """Validate that all environment variables are loaded correctly."""

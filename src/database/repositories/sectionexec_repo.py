@@ -29,3 +29,4 @@ class SectionExecRepo(BaseRepository[SectionExecution]):
         if not section_execution:
             raise ValueError(f"No sections found for execution with id {execution_id}.")
         return section_execution
+    

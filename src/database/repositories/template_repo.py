@@ -8,6 +8,17 @@ class TemplateRepo(BaseRepository[Template]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Template)
         
+        
+        
+    async def get_templates(self, organization_id: str) -> list[Template]:
+        """
+        Retrieve all templates for a specific organization.
+        """
+        query = (select(self.model)
+                 .where(self.model.organization_id == organization_id))
+        result = await self.session.execute(query)
+        return result.scalars().all()
+        
     async def get_by_id(self, template_id: str) -> Template:
         """
         Retrieve a template by its ID and template sections.

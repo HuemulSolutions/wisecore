@@ -25,9 +25,53 @@ class Organization(BaseClass):
     
     documents = relationship("Document", back_populates="organization")
     templates = relationship("Template", back_populates="organization")
+    folders = relationship("Folder", back_populates="organization")
     
     def __repr__(self):
         return f"<Organization(id={self.id}, name='{self.name}')>"
+
+
+class Folder(BaseClass):
+    __tablename__ = "folder"
+    
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
+    parent_folder_id = Column(UUID(as_uuid=True), ForeignKey("folder.id"), nullable=True)
+    
+    # Relaciones
+    organization = relationship("Organization", back_populates="folders")
+    parent_folder = relationship("Folder", remote_side="Folder.id", back_populates="subfolders")
+    subfolders = relationship("Folder", back_populates="parent_folder", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="folder")
+    
+    def __repr__(self):
+        return f"<Folder(id={self.id}, name='{self.name}', parent_id={self.parent_folder_id})>"
+    
+    @property
+    def full_path(self):
+        """Retorna la ruta completa de la carpeta"""
+        if self.parent_folder:
+            return f"{self.parent_folder.full_path}/{self.name}"
+        return self.name
+    
+    @property
+    def is_root(self):
+        """Indica si es una carpeta raíz (sin padre)"""
+        return self.parent_folder_id is None
+
+
+class DocumentType(BaseClass):
+    __tablename__ = "document_type"
+    
+    name = Column(String, nullable=False)
+    color = Column(String, nullable=False)
+    
+    
+    documents = relationship("Document", back_populates="document_type")
+    
+    def __repr__(self):
+        return f"<DocumentType(id={self.id}, name='{self.name}')>"
 
 
 class Dependency(BaseClass):
@@ -119,9 +163,13 @@ class Document(BaseClass):
     description = Column(String, nullable=False)
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
     template_id = Column(UUID(as_uuid=True), ForeignKey("template.id"), nullable=True)
+    document_type_id = Column(UUID(as_uuid=True), ForeignKey("document_type.id"), nullable=False)
+    folder_id = Column(UUID(as_uuid=True), ForeignKey("folder.id"), nullable=True)
     
     organization = relationship("Organization", back_populates="documents")
     template = relationship("Template", back_populates="documents")
+    document_type = relationship("DocumentType", back_populates="documents")
+    folder = relationship("Folder", back_populates="documents")
     executions = relationship("Execution", back_populates="document")
     sections = relationship("Section", back_populates="document", cascade="all, delete-orphan")
 
@@ -170,7 +218,6 @@ class Section(BaseClass):
     external_dependents = relationship("Dependency", foreign_keys="Dependency.depends_on_section_id", back_populates="depends_on_section")
     
     section_executions = relationship("SectionExecution", back_populates="section", passive_deletes=True)
-    chunks = relationship("Chunk", back_populates="section")
     
     @property
     def internal_section_dependencies(self):
@@ -229,6 +276,7 @@ class Execution(BaseClass):
 class SectionExecution(BaseClass):
     __tablename__ = "section_execution"
 
+    name = Column(String, nullable=True) # Cambiar después de migración
     user_instruction = Column(String, nullable=True)
     prompt = Column(String, nullable=True)
     order = Column(Integer, nullable=False)
@@ -238,8 +286,10 @@ class SectionExecution(BaseClass):
     section_id = Column(UUID(as_uuid=True), ForeignKey("section.id", ondelete="SET NULL"), nullable=True)
     execution_id = Column(UUID(as_uuid=True), ForeignKey("execution.id"), nullable=False)
     
+    
     section = relationship("Section", back_populates="section_executions")
     execution = relationship("Execution", back_populates="sections_executions")
+    chunks = relationship("Chunk", back_populates="section_execution")
     
     def __repr__(self):
         return f"<SectionExecution(id={self.id}, user_instruction='{self.user_instruction}', output='{self.output}')>"
@@ -250,9 +300,9 @@ class Chunk(BaseClass):
 
     content = Column(String, nullable=False)
     embedding = Column(Vector(3072), nullable=False)
-    section_id = Column(UUID(as_uuid=True), ForeignKey("section.id"), nullable=False)
+    section_execution_id = Column(UUID(as_uuid=True), ForeignKey("section_execution.id"), nullable=False)
     
-    section = relationship("Section", back_populates="chunks")
+    section_execution = relationship("SectionExecution", back_populates="chunks")
 
 
 

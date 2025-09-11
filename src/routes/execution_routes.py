@@ -9,62 +9,6 @@ from src.utils import get_transaction_id
 
 router = APIRouter(prefix="/execution")
 
-@router.get("/{execution_id}")
-async def get_execution(execution_id: str, 
-                        session: Session = Depends(get_session), 
-                        transaction_id: str = Depends(get_transaction_id)):
-    """
-    Retrieve an execution by its ID.
-    """
-    execution_service = ExecutionService(session)
-    try:
-        execution = await execution_service.get_execution(execution_id)
-        response = ResponseSchema(
-            transaction_id=transaction_id,
-            data=jsonable_encoder(execution)
-        )
-        return response
-    except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail={"transaction_id": transaction_id, 
-                    "error": str(e)}
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"transaction_id": transaction_id, 
-                    "error": f"An error occurred while retrieving the execution: {str(e)}"}
-        )
-        
-@router.post("/{document_id}")
-async def create_execution(document_id: str, 
-                           session: Session = Depends(get_session),
-                           transaction_id: str = Depends(get_transaction_id)):
-    """
-    Create a new execution for a document.
-    """
-    try:
-        execution_service = ExecutionService(session)
-        execution = await execution_service.create_execution(document_id)
-        
-        return ResponseSchema(
-            transaction_id=transaction_id,
-            data=jsonable_encoder(execution)
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail={"transaction_id": transaction_id,
-                    "error": str(e)}
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"transaction_id": transaction_id,
-                    "error": f"An error occurred while creating the execution: {str(e)}"}
-        )
-
 @router.get("/status/{execution_id}")
 async def get_execution_status(execution_id: str, 
                                session: Session = Depends(get_session),
@@ -119,6 +63,34 @@ async def delete_execution(execution_id: str,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while deleting the execution: {str(e)}"}
+        )
+        
+@router.post("/approve/{execution_id}")
+async def approve_execution(execution_id: str,
+                            session: Session = Depends(get_session),
+                            transaction_id: str = Depends(get_transaction_id)):
+    """
+    Approve an execution by its ID.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        await execution_service.approve_execution(execution_id)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data={"message": f"Execution {execution_id} approved successfully."}
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while approving the execution: {str(e)}"}
         )
         
         
@@ -179,7 +151,9 @@ async def modify_section_content(section_execution_id: str,
                 detail={"transaction_id": transaction_id,
                         "error": f"An error occurred while modifying the section content: {str(e)}"}
             )
-        
+            
+            
+
 @router.get("/export_markdown/{execution_id}")
 async def export_execution(execution_id: str, 
                            session: Session = Depends(get_session),
@@ -213,4 +187,61 @@ async def export_execution(execution_id: str,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while exporting the execution: {str(e)}"}
+        )
+        
+        
+@router.get("/{execution_id}")
+async def get_execution(execution_id: str, 
+                        session: Session = Depends(get_session), 
+                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve an execution by its ID.
+    """
+    execution_service = ExecutionService(session)
+    try:
+        execution = await execution_service.get_execution(execution_id)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(execution)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id, 
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id, 
+                    "error": f"An error occurred while retrieving the execution: {str(e)}"}
+        )
+        
+@router.post("/{document_id}")
+async def create_execution(document_id: str, 
+                           session: Session = Depends(get_session),
+                           transaction_id: str = Depends(get_transaction_id)):
+    """
+    Create a new execution for a document.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        execution = await execution_service.create_execution(document_id)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(execution)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while creating the execution: {str(e)}"}
         )

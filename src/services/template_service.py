@@ -33,11 +33,11 @@ class TemplateService:
         created_template = await self.template_repo.add(new_template)
         return created_template
     
-    async def get_all_templates(self) -> list[Template]:
+    async def get_all_templates(self, organization_id: str) -> list[Template]:
         """
         Retrieve all templates.
         """
-        return await self.template_repo.get_all()
+        return await self.template_repo.get_templates(organization_id)
     
     async def delete_template(self, template_id: str) -> None:
         """
