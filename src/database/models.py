@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UUID, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UUID, Boolean, LargeBinary, Text, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from pgvector.sqlalchemy import Vector
 from uuid import uuid4
 from sqlalchemy import Enum as SAEnum
@@ -43,7 +44,7 @@ class Folder(BaseClass):
     organization = relationship("Organization", back_populates="folders")
     parent_folder = relationship("Folder", remote_side="Folder.id", back_populates="subfolders")
     subfolders = relationship("Folder", back_populates="parent_folder", cascade="all, delete-orphan")
-    documents = relationship("Document", back_populates="folder")
+    documents = relationship("Document", back_populates="folder", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Folder(id={self.id}, name='{self.name}', parent_id={self.parent_folder_id})>"
@@ -165,18 +166,19 @@ class Document(BaseClass):
     template_id = Column(UUID(as_uuid=True), ForeignKey("template.id"), nullable=True)
     document_type_id = Column(UUID(as_uuid=True), ForeignKey("document_type.id"), nullable=False)
     folder_id = Column(UUID(as_uuid=True), ForeignKey("folder.id"), nullable=True)
+    # template_file = Column(LargeBinary, nullable=True)
     
     organization = relationship("Organization", back_populates="documents")
     template = relationship("Template", back_populates="documents")
     document_type = relationship("DocumentType", back_populates="documents")
     folder = relationship("Folder", back_populates="documents")
-    executions = relationship("Execution", back_populates="document")
+    executions = relationship("Execution", back_populates="document", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="document", cascade="all, delete-orphan")
 
     # Relaciones de dependencias
     dependencies = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document", cascade="all, delete-orphan")
     dependants = relationship("Dependency", foreign_keys="Dependency.depends_on_document_id", back_populates="depends_on", cascade="all, delete-orphan")
-    contexts = relationship("Context", back_populates="document")
+    contexts = relationship("Context", back_populates="document", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Document(id={self.id}, name='{self.name}', template_id={self.template_id})>"
@@ -289,7 +291,7 @@ class SectionExecution(BaseClass):
     
     section = relationship("Section", back_populates="section_executions")
     execution = relationship("Execution", back_populates="sections_executions")
-    chunks = relationship("Chunk", back_populates="section_execution")
+    chunks = relationship("Chunk", back_populates="section_execution", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<SectionExecution(id={self.id}, user_instruction='{self.user_instruction}', output='{self.output}')>"
@@ -304,5 +306,75 @@ class Chunk(BaseClass):
     
     section_execution = relationship("SectionExecution", back_populates="chunks")
 
+
+class CheckpointBlob(Base):
+    __tablename__ = "checkpoint_blobs"
+    
+    thread_id = Column(Text, primary_key=True, nullable=False)
+    checkpoint_ns = Column(Text, primary_key=True, nullable=False, default='')
+    channel = Column(Text, primary_key=True, nullable=False)
+    version = Column(Text, primary_key=True, nullable=False)
+    type = Column(Text, nullable=False)
+    blob = Column(LargeBinary, nullable=True)
+    
+    __table_args__ = (
+        Index('checkpoint_blobs_thread_id_idx', 'thread_id'),
+    )
+    
+    def __repr__(self):
+        return f"<CheckpointBlob(thread_id='{self.thread_id}', checkpoint_ns='{self.checkpoint_ns}', channel='{self.channel}', version='{self.version}')>"
+
+
+class CheckpointMigrations(Base):
+    __tablename__ = "checkpoint_migrations"
+    
+    v = Column(Integer, primary_key=True, nullable=False)
+    
+    def __repr__(self):
+        return f"<CheckpointMigrations(v={self.v})>"
+
+
+class CheckpointWrites(Base):
+    __tablename__ = "checkpoint_writes"
+    
+    thread_id = Column(Text, primary_key=True, nullable=False)
+    checkpoint_ns = Column(Text, primary_key=True, nullable=False, default='')
+    checkpoint_id = Column(Text, primary_key=True, nullable=False)
+    task_id = Column(Text, primary_key=True, nullable=False)
+    idx = Column(Integer, primary_key=True, nullable=False)
+    channel = Column(Text, nullable=False)
+    type = Column(Text, nullable=True)
+    blob = Column(LargeBinary, nullable=True)
+    task_path = Column(Text, nullable=False, default='')
+    
+    __table_args__ = (
+        Index('checkpoint_writes_thread_id_idx', 'thread_id'),
+    )
+    
+    def __repr__(self):
+        return f"<CheckpointWrites(thread_id='{self.thread_id}', checkpoint_ns='{self.checkpoint_ns}', checkpoint_id='{self.checkpoint_id}', task_id='{self.task_id}', idx={self.idx})>"
+
+
+class Checkpoints(Base):
+    __tablename__ = "checkpoints"
+    
+    thread_id = Column(Text, primary_key=True, nullable=False)
+    checkpoint_ns = Column(Text, primary_key=True, nullable=False, default='')
+    checkpoint_id = Column(Text, primary_key=True, nullable=False)
+    parent_checkpoint_id = Column(Text, nullable=True)
+    type = Column(Text, nullable=True)
+    checkpoint = Column(JSONB, nullable=False)
+    metadata_ = Column("metadata", JSONB, nullable=False, default={})  # 👈
+
+    __table_args__ = (
+        Index('checkpoints_thread_id_idx', 'thread_id'),
+    )
+
+    def __repr__(self):
+        return (
+            f"<Checkpoints(thread_id='{self.thread_id}', "
+            f"checkpoint_ns='{self.checkpoint_ns}', "
+            f"checkpoint_id='{self.checkpoint_id}')>"
+        )
 
 

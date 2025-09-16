@@ -22,7 +22,10 @@ class SectionExecRepo(BaseRepository[SectionExecution]):
     async def get_sections_by_execution_id(self, execution_id: str) -> SectionExecution:
         section_execution = await self.session.execute(
             select(SectionExecution)
-            .options(selectinload(SectionExecution.section))
+            .options(
+                selectinload(SectionExecution.section),
+                selectinload(SectionExecution.execution).selectinload(SectionExecution.execution.property.mapper.class_.document)
+            )
             .where(SectionExecution.execution_id == execution_id)
         )
         section_execution = section_execution.scalars().all()

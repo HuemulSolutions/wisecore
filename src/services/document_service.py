@@ -143,7 +143,7 @@ class DocumentService:
         return new_execution
     
     
-    async def get_document_content(self, document_id: str):
+    async def get_document_content(self, document_id: str, execution_id: str = None):
         """
         Retrieve the content of a document by its ID.
         Check if there is an approved execution; if not, it retrives the latest completed execution.
@@ -153,10 +153,12 @@ class DocumentService:
             raise ValueError(f"Document with ID {document_id} not found.")
         
         content = None
-        content = await self.document_repo.get_document_content(document_id)
+        execution_id, content = await self.document_repo.get_document_content(document_id, execution_id)
         response = {
             "document_id": document['id'],
+            "execution_id": execution_id,
             "document_type": document["document_type"],
+            "executions": document["executions"],
             "content": content
         }
         return response

@@ -48,9 +48,11 @@ async def redact_section_prompt_service(name: str, content: str = None):
         raise ValueError(f"LLM with name {system_config.DEFAULT_LLM} not found.")
     
     prompt_generate = """Redacta el prompt para un agente de IA que redacta una sección de un documento.
-El prompt debe ser claro, conciso y contener toda la información necesaria para que el agente pueda redactar la sección de manera efectiva.
-Debe ser una descripción breve de lo que tiene que contener la sección.
-El nombre de la sección es el siguiente: {name}"""
+El prompt debe ser claro, detallado y contener toda la información necesaria para que el agente pueda redactar la sección de manera efectiva.
+Debe ser una descripción de lo que tiene que contener la sección.
+Incluye parámetros como el tono, estilo, el largo aproximado, usar bullets si es necesario, etc.
+El nombre de la sección es el siguiente: {name}
+Tu output debe ser solo el prompt, no incluyas 'Prompt:' o algo similar antes o después del prompt."""
 
     prompt_improve = """Mejora el prompt para un agente de IA que redacta una sección de un documento.
 El prompt debe ser claro, conciso y contener toda la información necesaria para que el agente pueda redactar la sección de manera efectiva.

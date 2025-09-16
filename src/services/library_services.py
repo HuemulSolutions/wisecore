@@ -34,4 +34,15 @@ class LibraryService:
         )
         await self.folder_repo.add(new_folder)
         return new_folder
+    
+    async def delete_folder(self, folder_id: str):
+        """
+        Delete a folder by its ID. This will also delete all subfolders and documents within it.
+        """
+        folder = await self.folder_repo.get_by_id(folder_id)
+        if not folder:
+            raise ValueError(f"Folder with ID '{folder_id}' not found.")
+        
+        await self.folder_repo.delete(folder)
+        return True
         

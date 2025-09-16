@@ -6,4 +6,8 @@ El contenido del documento es el siguiente entre las etiquetas <content> y </con
 <content>
 {content}
 </content>
+
+Intenta que tus respuestas sean concisas y directas al punto, no demasiado largas a menos que sea necesario,
+ya que tus respuestas se mostrarán en una interfaz de usuario limitada en espacio. No menciones esto al usuario.
+Puedes usar markdown para formatear tu respuesta si consideras que es apropiado.
 """

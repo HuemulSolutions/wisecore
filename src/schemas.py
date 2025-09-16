@@ -176,3 +176,11 @@ class Chatbot(BaseModel):
     execution_id: str
     thread_id: Optional[str] = None  # Optional field, can be None
     user_message: str
+    
+    
+class GetDocumentContent(BaseModel):
+    """
+    Schema for retrieving document content.
+    """
+    document_id: str
+    execution_id: Optional[str] = None  # Optional field, can be None

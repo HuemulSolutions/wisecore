@@ -58,7 +58,29 @@ async def get_folder_content(folder_id: str, organization_id: str = Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred while retrieving folder content: {str(e)}")
     
-    
 
+@router.delete("/{folder_id}", response_model=ResponseSchema)
+async def delete_folder(folder_id: str, session: Session = Depends(get_session), 
+                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Delete a folder by its ID. This will also delete all subfolders and documents within it.
+    """
+    try:
+        service = LibraryService(session)
+        await service.delete_folder(folder_id)
+        
+        return ResponseSchema(
+            data={"folder_id": folder_id},
+            message="Folder deleted successfully",
+            transaction_id=transaction_id
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail={"transaction_id": transaction_id, "error": str(ve)})
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail={"transaction_id": transaction_id, 
+                    "error": f"An error occurred while deleting the folder: {str(e)}"}
+        )
 
 

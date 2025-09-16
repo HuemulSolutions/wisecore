@@ -5,6 +5,10 @@ from src.services.chunk_service import ChunkService
 from src.database.repositories.llm_repo import LLMRepo
 from src.database.models import Execution, Status
 from src.config import system_config
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from io import BytesIO
+from src.services.docx_utils import insertar_md_como_parrafos
 
 
 class ExecutionService:
@@ -14,7 +18,36 @@ class ExecutionService:
         self.section_exec_repo = SectionExecRepo(session)
         self.llm_repo = LLMRepo(session)
         
-        
+    
+    @staticmethod
+    def _generate_docx_no_template(data: dict) -> bytes:
+        """
+        Generate a Word document without a template.
+        """
+        doc = Document()
+
+        title = data.get("titulo_doc", "No Title").strip()
+        p_title = doc.add_paragraph(title)
+        p_title.style = "Title"
+        p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        doc.core_properties.title = title
+        doc.add_page_break()
+
+        secciones = data.get("secciones", [])
+        for num, sec in enumerate(secciones):
+            contenido = (sec.get("contenido") or "").strip()
+            if not contenido:
+                continue
+            placeholder = doc.add_paragraph("{{_md_block_}}")
+            insertar_md_como_parrafos(placeholder, contenido)
+            if num < len(secciones) - 1:
+                doc.add_page_break()
+
+        buf = BytesIO()
+        doc.save(buf)
+        return buf.getvalue()
+    
+    
     async def get_execution(self, execution_id: str):
         """
         Retrieve an execution by its ID.
@@ -102,7 +135,7 @@ class ExecutionService:
         updated_section_exec = await self.section_exec_repo.update(section_exec)
         return updated_section_exec
     
-    async def export_section_execs(self, execution_id: str) -> list:
+    async def export_execution_markdown(self, execution_id: str) -> list:
         """
         Export the section executions for a specific execution.
         """
@@ -116,6 +149,36 @@ class ExecutionService:
         )
         export_data = "\n\n-------\n\n".join([i.custom_output if i.custom_output else i.output for i in sorted_execs])
         return export_data
+    
+    async def export_execution_word(self, execution_id: str) -> bytes:
+        """
+        Export the results of a specific execution as a downloadable Word file.
+        """
+        section_execs = await self.section_exec_repo.get_sections_by_execution_id(execution_id)
+        if not section_execs:
+            raise ValueError(f"No section executions found for execution ID {execution_id}.")
+        
+        # Obtener el nombre del documento desde la primera section execution
+        document_name = section_execs[0].execution.document.name if section_execs[0].execution and section_execs[0].execution.document else "No Title"
+        
+        sorted_execs = sorted(
+            section_execs,
+            key=lambda x: (x.section.order)
+        )
+        
+        data = {
+            "titulo_doc": document_name,
+            "secciones": [
+                {
+                    "nombre": sec_exec.section.name if sec_exec.section else "No Name",
+                    "contenido": sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
+                }
+                for sec_exec in sorted_execs
+            ]
+        }
+        
+        docx_bytes = self._generate_docx_no_template(data)
+        return docx_bytes
     
     
     async def approve_execution(self, execution_id: str):

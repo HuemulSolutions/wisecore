@@ -46,7 +46,7 @@ class FolderRepo(BaseRepository[Folder]):
             subfolders = subfolders_result.scalars().all()
             
             # Get documents in this folder
-            documents_query = select(Document).where(Document.folder_id == folder_id)
+            documents_query = select(Document).options(selectinload(Document.document_type)).where(Document.folder_id == folder_id)
             documents_result = await self.session.execute(documents_query)
             documents = documents_result.scalars().all()
             
@@ -60,7 +60,7 @@ class FolderRepo(BaseRepository[Folder]):
             subfolders = root_folders_result.scalars().all()
             
             # Get root-level documents (no folder)
-            root_documents_query = select(Document).where(Document.folder_id.is_(None))
+            root_documents_query = select(Document).options(selectinload(Document.document_type)).where(Document.folder_id.is_(None))
             if organization_id:
                 root_documents_query = root_documents_query.where(Document.organization_id == organization_id)
                 
@@ -80,7 +80,12 @@ class FolderRepo(BaseRepository[Folder]):
             result["content"].append({
                 "id": str(document.id),
                 "name": document.name,
-                "type": "document"
+                "type": "document",
+                "document_type": {
+                    "id": str(document.document_type.id),
+                    "name": document.document_type.name,
+                    "color": document.document_type.color
+                }
             })
         
         return result
