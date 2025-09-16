@@ -129,9 +129,12 @@ class DocumentRepo(BaseRepository[Document]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
     
-    async def get_document_content(self, document_id: UUID) -> str:
+    async def get_document_content(self, document_id: str, execution_id: str = None) -> tuple[str, str]:
         """
         Retrieve the content of a document by its ID.
+        Returns a tuple with (execution_id, content).
+        If execution_id is provided, uses that specific execution if it's approved or completed.
+        Otherwise, uses the default logic to find approved or latest completed execution.
         """
         query = (
             select(self.model)
@@ -149,25 +152,35 @@ class DocumentRepo(BaseRepository[Document]):
             raise ValueError(f"Document with ID {document_id} not found.")
         
         if not document.executions:
-            return None
+            return None, None
         
-        # Find approved execution or latest completed execution
-        approved_execution = None
-        latest_completed_execution = None
+        target_execution = None
         
-        for execution in document.executions:
-            print(execution.status.value)
-            if execution.status == Status.APPROVED:
-                approved_execution = execution
-                break
-            elif execution.status == Status.COMPLETED:
-                if not latest_completed_execution or execution.created_at > latest_completed_execution.created_at:
-                    latest_completed_execution = execution
-        
-        target_execution = approved_execution or latest_completed_execution
+        if execution_id:
+            # Find specific execution if provided
+            for execution in document.executions:
+                if str(execution.id) == execution_id:
+                    if execution.status in [Status.APPROVED, Status.COMPLETED]:
+                        target_execution = execution
+                    break
+        else:
+            # Find approved execution or latest completed execution
+            approved_execution = None
+            latest_completed_execution = None
+            
+            for execution in document.executions:
+                if execution.status == Status.APPROVED:
+                    approved_execution = execution
+                    break
+                elif execution.status == Status.COMPLETED:
+                    if not latest_completed_execution or execution.created_at > latest_completed_execution.created_at:
+                        latest_completed_execution = execution
+            
+            target_execution = approved_execution or latest_completed_execution
         
         if not target_execution:
-            return None
+            print("NO TARGET EXECUTION")
+            return None, None
         
         content = ""
         sections = sorted(document.sections, key=lambda s: s.order)
@@ -187,7 +200,9 @@ class DocumentRepo(BaseRepository[Document]):
                 else:
                     continue
                 content += f"{section_content}\n\n"
-        return content if content.strip() else None
+        
+        final_content = content.strip() if content.strip() else None
+        return str(target_execution.id), final_content
     
     async def get_document_context(self, document_id: UUID) -> str:
         """

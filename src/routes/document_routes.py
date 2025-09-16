@@ -8,11 +8,40 @@ from src.services.context_service import ContextService
 from src.services.dependency_service import DependencyService
 from src.services.document_section_service import SectionService
 from src.utils import get_transaction_id, get_organization_id
-from src.schemas import (ResponseSchema, CreateDocument, CreateDocumentLibrary,
+from src.schemas import (ResponseSchema, GetDocumentContent, CreateDocumentLibrary,
                          CreateDocumentDependency, CreateDocumentSection,
                          AddDocumentContextText)
 
 router = APIRouter(prefix="/documents")
+
+@router.get("/content")
+async def get_document_content(document_id: str,
+                               execution_id: str = None, 
+                               session: Session = Depends(get_session), 
+                               transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve the content of a document by its ID.
+    """
+    document_service = DocumentService(session)
+    try:
+        info = await document_service.get_document_content(document_id, execution_id)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=info
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id, 
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id, 
+                    "error": f"An error occurred while retrieving the document content: {str(e)}"}
+        )
 
 @router.get("/{document_id}")
 async def get_document(document_id: str, 
@@ -42,33 +71,7 @@ async def get_document(document_id: str,
                     "error": f"An error occurred while retrieving the document: {str(e)}"}
         )
 
-@router.get("/{document_id}/content")
-async def get_document_content(document_id: str, 
-                               session: Session = Depends(get_session), 
-                               transaction_id: str = Depends(get_transaction_id)):
-    """
-    Retrieve the content of a document by its ID.
-    """
-    document_service = DocumentService(session)
-    try:
-        info = await document_service.get_document_content(document_id)
-        response = ResponseSchema(
-            transaction_id=transaction_id,
-            data=info
-        )
-        return response
-    except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail={"transaction_id": transaction_id, 
-                    "error": str(e)}
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"transaction_id": transaction_id, 
-                    "error": f"An error occurred while retrieving the document content: {str(e)}"}
-        )
+
         
 @router.delete("/{document_id}")
 async def delete_document(document_id: str,
@@ -124,39 +127,6 @@ async def get_all_documents(document_type_id: str = None,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while retrieving all documents: {str(e)}"}
         )
-        
-# @router.post("/")
-# async def create_document(create_document: CreateDocument,
-#                           session: Session = Depends(get_session),
-#                           transaction_id: str = Depends(get_transaction_id)):
-#     """
-#     Create a new document.
-#     """
-#     document_service = DocumentService(session)
-#     try:
-#         new_document = await document_service.create_document(
-#             name=create_document.name,
-#             description=create_document.description,
-#             organization_id=create_document.organization_id,
-#             document_type_id=create_document.document_type_id,
-#             template_id=create_document.template_id
-#         )
-#         return ResponseSchema(
-#             transaction_id=transaction_id,
-#             data=jsonable_encoder(new_document)
-#         )
-#     except ValueError as e:
-#         raise HTTPException(
-#             status_code=400,
-#             detail={"transaction_id": transaction_id,
-#                     "error": str(e)}
-#         )
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500,
-#             detail={"transaction_id": transaction_id,
-#                     "error": f"An error occurred while creating the document: {str(e)}"}
-#         )
         
 @router.post("/")
 async def create_document_in_library(request: CreateDocumentLibrary,
