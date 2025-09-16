@@ -5,10 +5,10 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copia el archivo de requerimientos al contenedor
-COPY requirements.txt .
+COPY requirements_ibm.txt .
 
 # Instala las dependencias necesarias
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_ibm.txt
 
 # Copia el código completo de la aplicación al contenedor
 COPY . .
