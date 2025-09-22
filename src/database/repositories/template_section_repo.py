@@ -92,7 +92,7 @@ class TemplateSectionRepo(BaseRepository[TemplateSection]):
         return False
     
     
-    async def add(self, section: TemplateSection, dependencies: list[str]) -> TemplateSection:
+    async def add(self, section: TemplateSection, dependencies: list[str] = []) -> TemplateSection:
         self.session.add(section)
         await self.session.flush()
         

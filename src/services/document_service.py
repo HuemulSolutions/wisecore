@@ -5,16 +5,10 @@ from src.database.repositories.template_repo import TemplateRepo
 from src.database.repositories.inner_depend_repo import InnerDependencyRepo
 from src.database.repositories.dependency_repo import DependencyRepo
 from src.database.repositories.execution_repo import ExecutionRepo
-from src.database.repositories.sectionexec_repo import SectionExecRepo
 from src.database.repositories.context_repo import ContextRepo
 from src.database.repositories.organization_repo import OrganizationRepo
-from src.database.models import (Document, Section, InnerDependency, 
-                                 Dependency, Execution, Status, SectionExecution,
-                                 Context)
-from fastapi import File, UploadFile
-import io
-from docx import Document as DocxDocument
-from PyPDF2 import PdfReader
+from src.database.models import (Document, Section, InnerDependency, Execution, Status)
+from src.services.generation_service import generate_document_structure
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
@@ -163,4 +157,70 @@ class DocumentService:
         }
         return response
     
+    async def save_generated_structure(self, document_id: str, structure: dict):
+        """
+        Save a generated structure to a document.
+        """
+        document = await self.document_repo.get_by_id(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        
+        # Check if document already has sections
+        existing_sections = await self.section_repo.get_sections_by_doc_id(document_id)
+        if existing_sections:
+            raise ValueError("Document already has sections. Cannot save generated structure.")
+        
+        sections = structure.get("sections", [])
+        if not sections:
+            raise ValueError("No sections found in the structure.")
+        
+        # Create a mapping from section name to Section object
+        section_map = {}
+        
+        # First, create all sections
+        for section_data in sections:
+            section = Section(
+                name=section_data["name"],
+                type="text",
+                order=section_data["order"],
+                prompt=section_data["prompt"],
+                document_id=document_id
+            )
+            created_section = await self.section_repo.add(section)
+            section_map[section_data["name"]] = created_section
+        
+        # Then, create internal dependencies
+        for section_data in sections:
+            current_section = section_map[section_data["name"]]
+            dependencies = section_data.get("dependencies", [])
+            
+            for dependency_name in dependencies:
+                if dependency_name not in section_map:
+                    raise ValueError(f"Dependency '{dependency_name}' not found for section '{section_data['name']}'")
+                
+                dependency_section = section_map[dependency_name]
+                inner_dependency = InnerDependency(
+                    section_id=current_section.id,
+                    depends_on_section_id=dependency_section.id
+                )
+                await self.inner_dependency_repo.add(inner_dependency)
+
+        # Flush changes to database
+        await self.session.flush()
+        
+        return document
     
+    async def generate_document_structure(self, document_id: str):
+        """
+        Generate the structure of a document based on its template.
+        """
+        document = await self.document_repo.get_document(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        
+
+        structure = await generate_document_structure(document.name, document.description)
+        
+        document = await self.save_generated_structure(document_id, structure)
+        return document
+
