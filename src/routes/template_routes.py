@@ -82,6 +82,12 @@ async def create_template(template: CreateTemplate,
             data=jsonable_encoder(template)
         )
         return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
