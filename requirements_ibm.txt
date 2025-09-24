@@ -97,7 +97,7 @@ platformdirs==4.3.8
 prompt_toolkit==3.0.51
 propcache==0.3.2
 psutil==7.0.0
-psycopg2==2.9.10
+psycopg2-binary
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pycparser==2.22

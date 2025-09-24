@@ -4,6 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph.message import add_messages
 from langchain.chat_models import init_chat_model
 from src.database.core import get_graph_session
+from src.llm.llm import get_llm
 from .services import ChatbotServices
 from .prompt import chatbot_prompt
 
@@ -12,10 +13,7 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
     content: Optional[str]
 
-llm = init_chat_model(
-            model="azure_openai:gpt-4.1",
-            azure_deployment="gpt-4.1",
-        )
+llm = get_llm("gpt-4.1")
     
 async def entrypoint(state: State) -> State:
     print("Entrypoint")

@@ -27,9 +27,9 @@ def get_llm(llm: str)-> BaseChatModel:
             azure_deployment="gpt-oss-120b",
         )
         return gpt_oss
-    elif llm == "granite":
+    elif llm == "granite-3.3":
         granite = init_chat_model(
-            model="ibm:ibm/granite-3-3-8b-instruct",
+            model="ibm/granite-3-3-8b-instruct",
             model_provider="ibm",
             project_id=system_config.WATSONX_PROJECT_ID
         )

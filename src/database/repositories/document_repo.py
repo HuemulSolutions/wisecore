@@ -129,12 +129,13 @@ class DocumentRepo(BaseRepository[Document]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
     
-    async def get_document_content(self, document_id: str, execution_id: str = None) -> tuple[str, str]:
+    async def get_document_content(self, document_id: str, execution_id: str = None) -> tuple[str, list[dict]]:
         """
         Retrieve the content of a document by its ID.
         Returns a tuple with (execution_id, content).
         If execution_id is provided, uses that specific execution if it's approved or completed.
         Otherwise, uses the default logic to find approved or latest completed execution.
+        Content is now a list of dictionaries with section_execution_id and content.
         """
         query = (
             select(self.model)
@@ -182,7 +183,7 @@ class DocumentRepo(BaseRepository[Document]):
             print("NO TARGET EXECUTION")
             return None, None
         
-        content = ""
+        content_list = []
         sections = sorted(document.sections, key=lambda s: s.order)
         for section in sections:
             # Get section execution from target execution
@@ -199,9 +200,13 @@ class DocumentRepo(BaseRepository[Document]):
                     section_content = section_execution.output
                 else:
                     continue
-                content += f"{section_content}\n\n"
+                
+                content_list.append({
+                    "id": str(section_execution.id),
+                    "content": section_content
+                })
         
-        final_content = content.strip() if content.strip() else None
+        final_content = content_list if content_list else None
         return str(target_execution.id), final_content
     
     async def get_document_context(self, document_id: UUID) -> str:
@@ -230,7 +235,6 @@ class DocumentRepo(BaseRepository[Document]):
             dependency_content = await self.get_document_content(dependency.depends_on_document_id)
             context_str += f"{dependency_content}\n"
         return context_str
-                
-        
-        
-    
+
+
+

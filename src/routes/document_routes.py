@@ -436,3 +436,32 @@ async def delete_document_context(document_id: str,
                 detail={"transaction_id": transaction_id,
                         "error": f"An error occurred while deleting context: {str(e)}"}
             )
+            
+            
+@router.post("/{document_id}/generate")
+async def generate_document_structure_endpoint(document_id: str,
+                                                  session: Session = Depends(get_session),
+                                                  transaction_id: str = Depends(get_transaction_id)):
+     """
+     Auto-generate the structure of a document based on its template.
+     This will create sections as defined by the template associated with the document.
+     """
+     document_service = DocumentService(session)
+     try:
+          updated_document = await document_service.generate_document_structure(document_id)
+          return ResponseSchema(
+                transaction_id=transaction_id,
+                data=jsonable_encoder(updated_document)
+          )
+     except ValueError as e:
+          raise HTTPException(
+                status_code=400,
+                detail={"transaction_id": transaction_id,
+                      "error": str(e)}
+          )
+     except Exception as e:
+          raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                      "error": f"An error occurred while generating document structure: {str(e)}"}
+          )

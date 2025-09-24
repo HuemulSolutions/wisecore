@@ -82,6 +82,12 @@ async def create_template(template: CreateTemplate,
             data=jsonable_encoder(template)
         )
         return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -151,6 +157,35 @@ async def export_template(template_id: str,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while exporting the template: {str(e)}"}
         )
+
+@router.post("/{template_id}/generate")
+async def generate_template_structure(template_id: str,
+                                      session: Session = Depends(get_session),
+                                      transaction_id: str = Depends(get_transaction_id)):
+    """
+    Generate the structure of a template using AI.
+    """
+    template_service = TemplateService(session)
+    try:
+        generated_template = await template_service.generate_template_structure(template_id)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(generated_template)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while generating the template structure: {str(e)}"}
+        )
+
         
 @router.put("/sections/order")
 async def update_template_section_order(update_order: UpdateSectionOrder,

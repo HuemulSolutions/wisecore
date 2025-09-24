@@ -4,19 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.doc_type_service import DocumentTypeService
 from src.schemas import ResponseSchema, CreateDocumentType
-from src.utils import get_transaction_id
+from src.utils import get_transaction_id, get_organization_id
 
 router = APIRouter(prefix="/document_types")
 
 @router.get("/")
-async def get_all_document_types(session: Session = Depends(get_session),
+async def get_all_document_types(organization_id = Depends(get_organization_id),
+                                 session: Session = Depends(get_session),
                                 transaction_id: str = Depends(get_transaction_id)):
     """
     Retrieve all document types.
     """
     document_type_service = DocumentTypeService(session)
     try:
-        document_types = await document_type_service.get_all_document_types()
+        document_types = await document_type_service.get_all_document_types(organization_id)
         return ResponseSchema(
             transaction_id=transaction_id,
             data=jsonable_encoder(document_types)
@@ -57,16 +58,19 @@ async def get_document_type(document_type_id: str,
 
 @router.post("/")
 async def create_document_type(document_type: CreateDocumentType,
+                               organization_id = Depends(get_organization_id),
                               session: Session = Depends(get_session),
                               transaction_id: str = Depends(get_transaction_id)):
     """
     Create a new document type.
     """
     document_type_service = DocumentTypeService(session)
+    print("OrganizationID:", organization_id)
     try:
         new_document_type = await document_type_service.create_document_type(
             name=document_type.name,
-            color=document_type.color
+            color=document_type.color,
+            organization_id=organization_id
         )
         return ResponseSchema(
             transaction_id=transaction_id,

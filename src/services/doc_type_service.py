@@ -7,11 +7,11 @@ class DocumentTypeService:
         self.session = session
         self.document_type_repo = DocumentTypeRepo(session)
     
-    async def get_all_document_types(self) -> list[DocumentType]:
+    async def get_all_document_types(self, organization_id: str) -> list[DocumentType]:
         """
         Retrieve all document types.
         """
-        return await self.document_type_repo.get_all()
+        return await self.document_type_repo.get_all(organization_id)
     
     async def get_document_type_by_id(self, document_type_id: str) -> DocumentType:
         """
@@ -22,18 +22,19 @@ class DocumentTypeService:
             raise ValueError(f"Document type with ID {document_type_id} not found.")
         return document_type
     
-    async def create_document_type(self, name: str, color: str) -> DocumentType:
+    async def create_document_type(self, name: str, color: str, organization_id: str) -> DocumentType:
         """
         Create a new document type.
         """
         # Check if document type with same name already exists
-        existing_type = await self.document_type_repo.get_by_name(name)
+        existing_type = await self.document_type_repo.get_by_name(name, organization_id)
         if existing_type:
             raise ValueError(f"Document type with name '{name}' already exists.")
         
         document_type = DocumentType(
             name=name,
-            color=color
+            color=color,
+            organization_id=organization_id
         )
         
         return await self.document_type_repo.add(document_type)

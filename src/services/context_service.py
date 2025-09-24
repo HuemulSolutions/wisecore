@@ -4,7 +4,7 @@ from src.database.repositories.document_repo import DocumentRepo
 from src.database.models import Context, Document
 from fastapi import File, UploadFile
 import io
-from docx import Document as DocxDocument
+from docx2python import docx2python
 from PyPDF2 import PdfReader
 
 class ContextService:
@@ -12,6 +12,26 @@ class ContextService:
         self.session = session
         self.context_repo = ContextRepo(session)
         self.document_repo = DocumentRepo(session)
+        
+    @staticmethod
+    def _extract_text_from_docx(file: UploadFile) -> str:
+        """
+        Extract text from a DOCX file.
+        """
+        try:
+            buf = io.BytesIO(file.file.read())
+            doc_result = docx2python(buf)
+            content = doc_result.text
+        
+            lines = []
+            for line in content.split('\n'):
+                line = line.strip()
+                if line:
+                    lines.append(line)
+            
+            return '\n'.join(lines)
+        except Exception as e:
+            raise ValueError(f"Failed to extract text from DOCX file '{file.filename}': {str(e)}. Please ensure the file is a valid Word document.")
         
     async def get_context_by_document_id(self, document_id: str):
         """
@@ -32,15 +52,26 @@ class ContextService:
         if content:
             new_context = Context(name=name, content=content, document_id=document_id)
         elif file:
-            ext = file.filename.split('.')[-1]
+            # Validate file before processing
+            if not file.filename:
+                raise ValueError("No filename provided.")
+            
+            # Reset file pointer to beginning
+            await file.seek(0)
+            
+            ext = file.filename.split('.')[-1].lower()
             data = await file.read()
+            
+            if not data:
+                raise ValueError(f"File '{file.filename}' is empty.")
+            
             text = ""
             if ext in ['txt', 'md']:
                 text = data.decode('utf-8', errors='ignore')
             elif ext == "docx":
-                buf = io.BytesIO(data)
-                doc = DocxDocument(buf)
-                text = "\n".join([para.text for para in doc.paragraphs])
+                # Reset file pointer for docx processing
+                await file.seek(0)
+                text = self._extract_text_from_docx(file)
             elif ext == "pdf":
                 buf = io.BytesIO(data)
                 reader = PdfReader(buf)
@@ -48,6 +79,10 @@ class ContextService:
                 text = "\n".join(pages)
             else:
                 raise ValueError(f"Unsupported file type: {ext}. Supported types are: txt, md, docx, pdf.")
+            
+            if not text.strip():
+                raise ValueError(f"No text content could be extracted from file '{file.filename}'.")
+                
             new_context = Context(name=name, content=text, document_id=document_id)
         
         new_context = await self.context_repo.add(new_context)

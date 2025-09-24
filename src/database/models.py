@@ -27,6 +27,7 @@ class Organization(BaseClass):
     documents = relationship("Document", back_populates="organization")
     templates = relationship("Template", back_populates="organization")
     folders = relationship("Folder", back_populates="organization")
+    document_types = relationship("DocumentType", back_populates="organization")
     
     def __repr__(self):
         return f"<Organization(id={self.id}, name='{self.name}')>"
@@ -67,6 +68,8 @@ class DocumentType(BaseClass):
     
     name = Column(String, nullable=False)
     color = Column(String, nullable=False)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=True)
+    organization = relationship("Organization", back_populates="document_types")
     
     
     documents = relationship("Document", back_populates="document_type")

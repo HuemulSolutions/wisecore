@@ -14,6 +14,7 @@ from src.routes.llm_routes import router as llm_router
 from src.routes.chunk_routes import router as chunk_router
 from src.routes.doc_type_routes import router as doc_type_router
 from src.routes.library_routes import router as library_router
+from src.routes.section_execution_routes import router as section_execution_router
 
 logger = setup_logging()
 
@@ -42,6 +43,7 @@ app.include_router(llm_router)
 app.include_router(chunk_router)
 app.include_router(doc_type_router)
 app.include_router(library_router)
+app.include_router(section_execution_router)
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
