@@ -41,6 +41,27 @@ class DocumentService:
         await self.document_repo.delete(document)
         return True
     
+    async def update_document(self, document_id: str, name: str = None, description: str = None):
+        """
+        Update a document's name and/or description.
+        """
+        document = await self.document_repo.get_document(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        
+        # Check if name is being updated and if it already exists
+        if name and name != document.name:
+            existing_document = await self.document_repo.get_by_name(name)
+            if existing_document:
+                raise ValueError(f"Document with name {name} already exists.")
+            document.name = name
+        
+        if description is not None:
+            document.description = description
+        
+        updated_document = await self.document_repo.update(document)
+        return updated_document
+    
     async def get_all_documents(self, organization_id: str = None, document_type_id: str = None):
         """
         Retrieve all documents.

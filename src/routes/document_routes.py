@@ -6,11 +6,9 @@ from src.services.document_service import DocumentService
 from src.services.execution_service import ExecutionService
 from src.services.context_service import ContextService
 from src.services.dependency_service import DependencyService
-from src.services.document_section_service import SectionService
 from src.utils import get_transaction_id, get_organization_id
-from src.schemas import (ResponseSchema, GetDocumentContent, CreateDocumentLibrary,
-                         CreateDocumentDependency, CreateDocumentSection,
-                         AddDocumentContextText)
+from src.schemas import (ResponseSchema, CreateDocumentLibrary,
+                         CreateDocumentDependency, AddDocumentContextText, UpdateDocument)
 
 router = APIRouter(prefix="/documents")
 
@@ -161,6 +159,38 @@ async def create_document_in_library(request: CreateDocumentLibrary,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while creating the document: {str(e)}"}
+        )
+
+@router.put("/{document_id}")
+async def update_document(document_id: str,
+                          request: UpdateDocument,
+                          session: Session = Depends(get_session),
+                          transaction_id: str = Depends(get_transaction_id)):
+    """
+    Update a document's name and/or description.
+    """
+    document_service = DocumentService(session)
+    try:
+        updated_document = await document_service.update_document(
+            document_id=document_id,
+            name=request.name,
+            description=request.description
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the document: {str(e)}"}
         )
 
         
