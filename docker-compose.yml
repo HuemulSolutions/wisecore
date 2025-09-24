@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: wisecore
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    image: matiasbarrerahuemul/wisecore-backend:latest
+    restart: always
+    ports:
+      - "8000:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://usuario:password@db:5432/wisecore
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
