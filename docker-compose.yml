@@ -1,8 +1,6 @@
-version: "3.9"
-
 services:
   db:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     restart: always
     environment:
       POSTGRES_USER: usuario
@@ -22,8 +20,14 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://usuario:password@db:5432/wisecore
+      ALEMBIC_DATABASE_URL: postgresql+psycopg2://usuario:password@db:5432/wisecore
     depends_on:
       - db
+    command: >
+      sh -c "until pg_isready -h db -p 5432 -U usuario;
+            do echo 'Esperando a Postgres...'; sleep 2; done;
+            alembic upgrade head &&
+            gunicorn -k uvicorn.workers.UvicornWorker src.main:app --bind 0.0.0.0:8080"
 
 volumes:
   postgres_data:
