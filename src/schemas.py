@@ -106,6 +106,13 @@ class CreateDocumentDependency(BaseModel):
     depends_on_document_id: str
     section_id: Optional[str] = None
     depends_on_section_id: Optional[str] = None
+
+class UpdateDocument(BaseModel):
+    """
+    Schema for updating a document's name and/or description.
+    """
+    name: Optional[str] = None
+    description: Optional[str] = None
     
 class CreateDocumentSection(BaseModel):
     """

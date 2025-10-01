@@ -49,6 +49,7 @@ async def stream_graph(document_id: str, execution_id: str, user_instructions: s
         async with get_graph_session() as session:
             service = GraphServices(session)
             await service.update_execution(execution_id, Status.FAILED, str(e))
+        print(f"Error in stream_graph: {e}")
         yield f"event: error\ndata: {str(e)}\n\n"
         return
     

@@ -207,4 +207,23 @@ class ExecutionService:
         execution.status = Status.APPROVED
         updated_execution = await self.execution_repo.update(execution)
         return updated_execution
+    
+    
+    async def disapprove_execution(self, execution_id: str):
+        """
+        Change the status of the execution to DISAPPROVED.
+        """
+        execution = await self.execution_repo.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        
+        chunk_service = ChunkService(self.session)
+        try:
+            await chunk_service.delete_chunks_by_execution(execution_id)
+        except Exception as e:
+            raise ValueError(f"Failed to delete chunks for execution ID {execution_id}: {str(e)}")
+        
+        execution.status = Status.COMPLETED
+        updated_execution = await self.execution_repo.update(execution)
+        return updated_execution
         
