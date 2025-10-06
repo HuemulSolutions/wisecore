@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.services.chunk_service import ChunkService
 from src.schemas import ResponseSchema
-from src.utils import get_transaction_id
+from src.utils import get_transaction_id, get_organization_id
 
 router = APIRouter(prefix="/chunks")
 
@@ -39,6 +39,7 @@ async def generate_chunks(execution_id: str,
             
 @router.get("/search")
 async def search_chunks(query: str,
+                        organization_id: str = Depends(get_organization_id),
                         session: Session = Depends(get_session),
                         transaction_id: str = Depends(get_transaction_id)):
     """
@@ -46,7 +47,7 @@ async def search_chunks(query: str,
     """
     try:
         chunk_service = ChunkService(session)
-        result = await chunk_service.search_chunks(query)
+        result = await chunk_service.search_chunks(query, organization_id)
         
         return ResponseSchema(
             transaction_id=transaction_id,

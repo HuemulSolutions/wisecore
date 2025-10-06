@@ -40,7 +40,7 @@ class ChunkRepo(BaseRepository[Chunk]):
             await self.session.refresh(chunk)
         return chunks
         
-    async def search_by_embedding(self, embedded_query: str, limit: int = 5) -> List[dict]:
+    async def search_by_embedding(self, embedded_query: str, organization_id: str, limit: int = 5) -> List[dict]:
         """
         Search for chunks by embedding similarity.
         """
@@ -48,9 +48,12 @@ class ChunkRepo(BaseRepository[Chunk]):
         query = (
             select(self.model)
             .options(
-                joinedload(self.model.section_execution).joinedload(SectionExecution.execution).joinedload(Execution.document)
+                joinedload(self.model.section_execution)
+                .joinedload(SectionExecution.execution)
+                .joinedload(Execution.document)
             )
             .where(distance <= DISTANCE)
+            .where(Document.organization_id == organization_id)
             .order_by(distance)
             .limit(limit)
         )

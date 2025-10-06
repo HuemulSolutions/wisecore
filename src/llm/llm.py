@@ -5,16 +5,20 @@ from src.config import system_config
 def get_llm(llm: str)-> BaseChatModel:
     if llm == "gpt-4.1":
         gpt = init_chat_model(
-            model="azure_openai:gpt-4.1",
-            azure_deployment="gpt-4.1",
+            model="azure-gpt-4.1",
+            model_provider="openai",
+            base_url=system_config.MODEL_GATEWAY_URL,
+            api_key=system_config.MODEL_GATEWAY_APIKEY,
         )
         return gpt
-    elif llm == "deepseek-v3":
-        deepseek = init_chat_model(
-            model="azure_ai:DeepSeek-V3-0324",
-            azure_deployment="DeepSeek-V3-0324",
+    elif llm == "claude-sonnet-4":
+        claude = init_chat_model(
+            model="claude-sonnet-4",
+            model_provider="openai",
+            base_url=system_config.MODEL_GATEWAY_URL,
+            api_key=system_config.MODEL_GATEWAY_APIKEY,
         )
-        return deepseek
+        return claude
     elif llm == "llama-4-maverick":
         llama = init_chat_model(
             model="azure_ai:Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -27,10 +31,11 @@ def get_llm(llm: str)-> BaseChatModel:
             azure_deployment="gpt-oss-120b",
         )
         return gpt_oss
-    elif llm == "granite-3.3":
+    elif llm == "granite-4":
         granite = init_chat_model(
-            model="ibm/granite-3-3-8b-instruct",
-            model_provider="ibm",
-            project_id=system_config.WATSONX_PROJECT_ID
+            model="granite-4",
+            model_provider="openai",
+            base_url=system_config.MODEL_GATEWAY_URL,
+            api_key=system_config.MODEL_GATEWAY_APIKEY,
         )
         return granite
