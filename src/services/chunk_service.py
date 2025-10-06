@@ -232,12 +232,14 @@ class ChunkService:
 
         return len(all_chunks)
     
-    async def search_chunks(self, query: str, top_k: int = 5) -> List[Chunk]:
+    async def search_chunks(self, query: str, organization_id: str, top_k: int = 5) -> List[Chunk]:
         """
         Search for chunks similar to the query using vector similarity.
         """
         query_embedding = self.create_embeddings(query)
-        results = await self.chunk_repo.search_by_embedding(query_embedding)
+        results = await self.chunk_repo.search_by_embedding(query_embedding, 
+                                                            organization_id=organization_id, 
+                                                            limit=top_k)
         return results
     
     async def delete_chunks_by_execution(self, execution_id: str):

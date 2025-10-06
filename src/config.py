@@ -22,6 +22,8 @@ class Config:
     DEFAULT_LLM: str = os.getenv("DEFAULT_LLM", "gpt-4.1")
     AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY")
     AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT")
+    MODEL_GATEWAY_URL: str = os.getenv("MODEL_GATEWAY_URL")
+    MODEL_GATEWAY_APIKEY: str = os.getenv("MODEL_GATEWAY_APIKEY")
 
     def __post_init__(self):
         """Validate that all environment variables are loaded correctly."""
