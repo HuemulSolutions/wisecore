@@ -28,7 +28,7 @@ class TemplateService:
         """
         Create a new template.
         """
-        template = await self.template_repo.get_by_name(name)
+        template = await self.template_repo.get_by_name(name, organization_id=organization_id)
         if template:
             raise ValueError(f"Template with name {name} already exists.")
         

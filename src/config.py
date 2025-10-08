@@ -14,14 +14,9 @@ class Config:
     Configuration class to hold application settings.
     """
     DATABASE_URL: str = os.getenv("DATABASE_URL")
-    WATSONX_APIKEY: str = os.getenv("WATSONX_APIKEY")
-    WATSONX_URL: str = os.getenv("WATSONX_URL")
-    WATSONX_PROJECT_ID: str = os.getenv("WATSONX_PROJECT_ID")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "LOCAL")
     ALEMBIC_DATABASE_URL: str = os.getenv("ALEMBIC_DATABASE_URL", "")
     DEFAULT_LLM: str = os.getenv("DEFAULT_LLM", "gpt-4.1")
-    AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY")
-    AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT")
     MODEL_GATEWAY_URL: str = os.getenv("MODEL_GATEWAY_URL")
     MODEL_GATEWAY_APIKEY: str = os.getenv("MODEL_GATEWAY_APIKEY")
 
