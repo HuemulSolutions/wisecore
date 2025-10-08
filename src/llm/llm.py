@@ -21,14 +21,20 @@ def get_llm(llm: str)-> BaseChatModel:
         return claude
     elif llm == "llama-4-maverick":
         llama = init_chat_model(
-            model="azure_ai:Llama-4-Maverick-17B-128E-Instruct-FP8",
-            azure_deployment="Llama-4-Maverick-17B-128E-Instruct-FP8"
+            model="ibm-llama-maverick",
+            model_provider="openai",
+            base_url=system_config.MODEL_GATEWAY_URL,
+            api_key=system_config.MODEL_GATEWAY_APIKEY,
+            max_tokens=8192
         )
         return llama
     elif llm == "gpt-oss":
         gpt_oss = init_chat_model(
-            model="azure_ai:gpt-oss-120b",
-            azure_deployment="gpt-oss-120b",
+            model="ibm-gpt-oss",
+            model_provider="openai",
+            base_url=system_config.MODEL_GATEWAY_URL,
+            api_key=system_config.MODEL_GATEWAY_APIKEY,
+            max_tokens=8192
         )
         return gpt_oss
     elif llm == "granite-4":
@@ -37,5 +43,6 @@ def get_llm(llm: str)-> BaseChatModel:
             model_provider="openai",
             base_url=system_config.MODEL_GATEWAY_URL,
             api_key=system_config.MODEL_GATEWAY_APIKEY,
+            max_tokens=8192
         )
         return granite

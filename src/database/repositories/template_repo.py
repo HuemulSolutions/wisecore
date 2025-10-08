@@ -41,12 +41,14 @@ class TemplateRepo(BaseRepository[Template]):
             
         return template
     
-    async def get_by_name(self, name: str) -> Template:
+    async def get_by_name(self, name: str, organization_id: str = None) -> Template:
         """
         Retrieve a template by its name.
         """
         query = (select(self.model)
                  .where(self.model.name == name))
+        if organization_id:
+            query = query.where(self.model.organization_id == organization_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
     
