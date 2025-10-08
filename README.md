@@ -210,8 +210,30 @@ alembic revision --autogenerate -m "Change description"
 alembic upgrade head
 ```
 
-## License
+## Licencia
 
+WiseCore is licensed under the **Elastic License 2.0**.
+
+### What does this mean?
+
+- ✅ **Free to use** for personal and commercial purposes
+- ✅ **Modify and distribute** the code
+- ✅ **Use internally** in your business without restrictions
+- ❌ **Cannot offer as SaaS** or managed service
+- ❌ **Cannot resell** the software as a product
+- ❌ **Cannot sell consulting services** primarily based on WiseCore
+
+For more details, see:
+- [![License](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](LICENSE.md) - Full legal terms
+- [![Notice](https://img.shields.io/badge/Read-NOTICE-orange.svg)](NOTICE.md) - Plain language explanation
+
+### Questions about licensing?
+
+If you're unsure whether your use case is permitted, please contact us:
+- Email: developer.code@huemulsolutions.com
+- GitHub Issues: https://github.com/yourusername/wisecore/issues
+
+We're open to discussing special cases and custom commercial licenses.
 
 ## Support
 
