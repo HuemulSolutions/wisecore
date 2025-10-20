@@ -228,7 +228,11 @@ def insertar_md_como_parrafos(para: Paragraph, md_text: str) -> None:
         estilo = None
         fuente_manual = None
 
-        if stripped.startswith("#### "):
+        if stripped.startswith("##### "):
+            stripped = stripped[6:].strip()
+            estilo = "Heading 5"
+            fuente_manual = Pt(10)
+        elif stripped.startswith("#### "):
             stripped = stripped[5:].strip()
             fuente_manual = Pt(11)
         elif stripped.startswith("### "):
