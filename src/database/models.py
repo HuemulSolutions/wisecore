@@ -177,6 +177,8 @@ class Document(BaseClass):
     folder = relationship("Folder", back_populates="documents")
     executions = relationship("Execution", back_populates="document", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="document", cascade="all, delete-orphan")
+    docx_template = relationship("DocxTemplate", back_populates="document", cascade="all, delete-orphan")
+    
 
     # Relaciones de dependencias
     dependencies = relationship("Dependency", foreign_keys="Dependency.document_id", back_populates="document", cascade="all, delete-orphan")
@@ -244,7 +246,21 @@ class Section(BaseClass):
     def __repr__(self):
         return f"<Section(id={self.id}, name='{self.name}', order={self.order})>"
     
+
     
+class DocxTemplate(BaseClass):
+    __tablename__ = "docx_template"
+    
+    name = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)  # Nombre original del archivo
+    mime_type = Column(String, nullable=False, default='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    file_size = Column(Integer, nullable=False)  # Tamaño en bytes
+    file_data = Column(LargeBinary, nullable=False)  # El archivo en sí
+    document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
+    
+    document = relationship("Document")
+    
+
 class LLM(BaseClass):
     __tablename__ = "llm"
     
