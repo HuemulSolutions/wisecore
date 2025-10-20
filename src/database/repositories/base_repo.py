@@ -27,7 +27,5 @@ class BaseRepository(Generic[T]):
     
     async def update(self, instance: T) -> T:
         self.session.add(instance)
-        await self.session.flush()
         return instance
-    
-    
+

@@ -6,6 +6,7 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.text.paragraph import Paragraph
 from docx.shared import Pt
+from docx.oxml.ns import qn
 
 
 def normalizer(s: str) -> str:
@@ -55,22 +56,99 @@ def extraer_secciones_placeholders(archivo_md: str) -> Dict:
 def render_tabla_md(md_lines: List[str], insert_idx: int, parent_element, doc) -> None:
     if len(md_lines) < 2:
         return
-
-    header = [h.strip() for h in md_lines[0].split("|") if h.strip()]
-    separator = [s.strip() for s in md_lines[1].split("|") if s.strip()]
-
-    if len(header) != len(separator):
+    header_raw = md_lines[0]
+    separator_raw = md_lines[1]
+    header = [h.strip() for h in header_raw.strip().strip("|").split("|")]
+    separator_cells = [s.strip() for s in separator_raw.strip().strip("|").split("|")]
+    if len(header) != len(separator_cells):
         return
+
+    data_rows: List[List[str]] = []
+    for line in md_lines[2:]:
+        if not line.strip():
+            continue
+        if "|" not in line:
+            break
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == len(header):
+            data_rows.append(cells)
+
+    def _get_first_section(container):
+        # container puede ser Document o Body
+        if hasattr(container, "sections"):
+            try:
+                return container.sections[0]
+            except Exception:
+                pass
+        if hasattr(container, "part"):
+            part = getattr(container, "part")
+            doc_obj = getattr(part, "document", None)
+            if doc_obj and hasattr(doc_obj, "sections"):
+                try:
+                    return doc_obj.sections[0]
+                except Exception:
+                    pass
+        return None
+
+    def _compute_col_widths(cols: List[str], rows: List[List[str]]) -> List[int]:
+        max_len = [len(c) for c in cols]
+        for r in rows:
+            for i, c in enumerate(r):
+                if len(c) > max_len[i]:
+                    max_len[i] = len(c)
+        total_chars = sum(max_len) or 1
+
+        section = _get_first_section(doc)
+        # Fallbacks si no hay sección disponible
+        if section is not None:
+            try:
+                emu_to_twips = lambda emu: int(emu / 635)
+                page_twips = emu_to_twips(section.page_width)
+                left_twips = emu_to_twips(section.left_margin)
+                right_twips = emu_to_twips(section.right_margin)
+            except Exception:
+                # Fallback si propiedades no accesibles
+                page_twips = 12240
+                left_twips = right_twips = 1440
+        else:
+            page_twips = 12240  # ~8.5in
+            left_twips = right_twips = 1440  # ~1in cada margen
+
+        avail = max(page_twips - left_twips - right_twips - 200, 3000)
+        MIN_COL = 1500
+        widths = [max(int(avail * l / total_chars), MIN_COL) for l in max_len]
+        scale = avail / sum(widths)
+        return [int(w * scale) for w in widths]
+
+    col_widths = _compute_col_widths(header, data_rows)
 
     tbl = OxmlElement("w:tbl")
     parent_element.insert(insert_idx, tbl)
 
-    def add_row(values):
+    grid = OxmlElement("w:tblGrid")
+    for w in col_widths:
+        gridCol = OxmlElement("w:gridCol")
+        gridCol.set(qn("w:w"), str(w))
+        grid.append(gridCol)
+    tbl.append(grid)
+
+    def add_row(values, bold=False):
         tr = OxmlElement("w:tr")
-        for val in values:
+        for idx, val in enumerate(values):
             tc = OxmlElement("w:tc")
+            tcPr = OxmlElement("w:tcPr")
+            tcW = OxmlElement("w:tcW")
+            tcW.set(qn("w:w"), str(col_widths[idx]))
+            tcW.set(qn("w:type"), "dxa")
+            tcPr.append(tcW)
+            tc.append(tcPr)
             p = OxmlElement("w:p")
             r = OxmlElement("w:r")
+            if bold:
+                rPr = OxmlElement("w:rPr")
+                b = OxmlElement("w:b")
+                rPr.append(b)
+                r.append(rPr)
             t = OxmlElement("w:t")
             t.text = val
             r.append(t)
@@ -79,11 +157,25 @@ def render_tabla_md(md_lines: List[str], insert_idx: int, parent_element, doc) -
             tr.append(tc)
         tbl.append(tr)
 
-    add_row(header)
-    for line in md_lines[2:]:
-        cells = [c.strip() for c in line.split("|") if c.strip()]
-        if len(cells) == len(header):
-            add_row(cells)
+    add_row(header, bold=True)
+    for row in data_rows:
+        add_row(row)
+
+
+# Nuevas funciones auxiliares para identificar tablas
+def _is_table_separator_line(line: str) -> bool:
+    """
+    Detecta línea separadora de tabla markdown (soporta :, ---).
+    """
+    pattern = r"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"
+    return re.fullmatch(pattern, line) is not None
+
+
+def _is_table_header_candidate(line: str) -> bool:
+    """
+    Candidata a header si contiene '|' y no es separador.
+    """
+    return "|" in line and not _is_table_separator_line(line)
 
 
 def insertar_md_como_parrafos(para: Paragraph, md_text: str) -> None:
@@ -94,25 +186,36 @@ def insertar_md_como_parrafos(para: Paragraph, md_text: str) -> None:
     bloques = md_text.strip().splitlines()
     doc = para._parent
     insert_count = 0
-
     i = 0
+
     while i < len(bloques):
-        ln = bloques[i].strip()
+        ln = bloques[i]
 
-        if i + 1 < len(bloques) and re.fullmatch(r"\s*\|?(\s*-+\s*\|)+\s*", bloques[i + 1]):
-            j = i
-            tabla_md = []
-            while j < len(bloques) and "|" in bloques[j]:
-                tabla_md.append(bloques[j])
+        # Detección mejorada de tabla
+        if _is_table_header_candidate(ln):
+            # Saltar líneas en blanco para buscar separador
+            j = i + 1
+            while j < len(bloques) and bloques[j].strip() == "":
                 j += 1
-            
-            render_tabla_md(tabla_md, idx + insert_count, parent, doc)
+            if j < len(bloques) and _is_table_separator_line(bloques[j]):
+                # Recolectar líneas de tabla
+                tabla_md = [bloques[i], bloques[j]]
+                k = j + 1
+                while k < len(bloques):
+                    line_k = bloques[k]
+                    if not line_k.strip():
+                        break
+                    if "|" not in line_k:
+                        break
+                    tabla_md.append(line_k)
+                    k += 1
+                render_tabla_md(tabla_md, idx + insert_count, parent, doc)
+                insert_count += 1
+                i = k
+                continue
 
-            insert_count += 1
-            i = j
-            continue
-
-        if not ln:
+        ln_strip = ln.strip()
+        if not ln_strip:
             i += 1
             continue
 
@@ -121,23 +224,20 @@ def insertar_md_como_parrafos(para: Paragraph, md_text: str) -> None:
         new_para = Paragraph(new_p, doc)
         insert_count += 1
 
-        stripped = ln.strip()
+        stripped = ln_strip
         estilo = None
         fuente_manual = None
 
         if stripped.startswith("#### "):
             stripped = stripped[5:].strip()
             fuente_manual = Pt(11)
-
         elif stripped.startswith("### "):
             stripped = stripped[4:].strip()
             estilo = "Heading 3"
-
         elif stripped.startswith("## "):
             stripped = stripped[3:].strip()
             estilo = "Heading 2"
             fuente_manual = Pt(14)
-
         elif stripped.startswith("- "):
             stripped = stripped[2:].strip()
             estilo = "List Bullet"
@@ -152,7 +252,6 @@ def insertar_md_como_parrafos(para: Paragraph, md_text: str) -> None:
                 run.bold = True
             else:
                 run = new_para.add_run(part)
-
             if fuente_manual:
                 run.font.size = fuente_manual
 
