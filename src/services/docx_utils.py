@@ -53,6 +53,69 @@ def extraer_secciones_placeholders(archivo_md: str) -> Dict:
     return {"titulo_doc": titulo_doc, "secciones": secciones}
 
 
+def _procesar_contenido_celda(contenido: str, tc_element):
+    """
+    Procesa contenido markdown en una celda de tabla, soportando negritas y listas.
+    """
+    contenido = contenido.strip()
+    if not contenido:
+        p = OxmlElement("w:p")
+        tc_element.append(p)
+        return
+
+    # Dividir por líneas para manejar listas
+    lineas = contenido.split('\n')
+    
+    for i, linea in enumerate(lineas):
+        linea = linea.strip()
+        if not linea:
+            continue
+            
+        p = OxmlElement("w:p")
+        
+        # Detectar si es elemento de lista
+        es_lista = False
+        if linea.startswith('- '):
+            linea = linea[2:].strip()
+            es_lista = True
+            # Agregar propiedades de lista al párrafo
+            pPr = OxmlElement("w:pPr")
+            numPr = OxmlElement("w:numPr")
+            ilvl = OxmlElement("w:ilvl")
+            ilvl.set(qn("w:val"), "0")
+            numId = OxmlElement("w:numId")
+            numId.set(qn("w:val"), "1")
+            numPr.append(ilvl)
+            numPr.append(numId)
+            pPr.append(numPr)
+            p.append(pPr)
+        
+        # Procesar negritas en la línea
+        parts = re.split(r"(\*\*[^*]+\*\*)", linea)
+        
+        for part in parts:
+            if part.startswith("**") and part.endswith("**"):
+                # Texto en negrita
+                r = OxmlElement("w:r")
+                rPr = OxmlElement("w:rPr")
+                b = OxmlElement("w:b")
+                rPr.append(b)
+                r.append(rPr)
+                t = OxmlElement("w:t")
+                t.text = part[2:-2]
+                r.append(t)
+                p.append(r)
+            elif part:
+                # Texto normal
+                r = OxmlElement("w:r")
+                t = OxmlElement("w:t")
+                t.text = part
+                r.append(t)
+                p.append(r)
+        
+        tc_element.append(p)
+
+
 def render_tabla_md(md_lines: List[str], insert_idx: int, parent_element, doc) -> None:
     if len(md_lines) < 2:
         return
@@ -142,18 +205,24 @@ def render_tabla_md(md_lines: List[str], insert_idx: int, parent_element, doc) -
             tcW.set(qn("w:type"), "dxa")
             tcPr.append(tcW)
             tc.append(tcPr)
-            p = OxmlElement("w:p")
-            r = OxmlElement("w:r")
+            
             if bold:
+                # Para headers, mantener comportamiento simple con negrita
+                p = OxmlElement("w:p")
+                r = OxmlElement("w:r")
                 rPr = OxmlElement("w:rPr")
                 b = OxmlElement("w:b")
                 rPr.append(b)
                 r.append(rPr)
-            t = OxmlElement("w:t")
-            t.text = val
-            r.append(t)
-            p.append(r)
-            tc.append(p)
+                t = OxmlElement("w:t")
+                t.text = val
+                r.append(t)
+                p.append(r)
+                tc.append(p)
+            else:
+                # Para celdas normales, procesar markdown
+                _procesar_contenido_celda(val, tc)
+            
             tr.append(tc)
         tbl.append(tr)
 
