@@ -1,6 +1,6 @@
 from .base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models import Document, InnerDependency, Section, Execution, Status
+from ..models import Document, InnerDependency, Section, Execution, Status, DocxTemplate
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
@@ -60,6 +60,7 @@ class DocumentRepo(BaseRepository[Document]):
                 selectinload(Document.template),
                 selectinload(Document.executions),
                 selectinload(Document.document_type),
+                selectinload(Document.docx_template),
                 selectinload(Document.sections)
                 .selectinload(Section.internal_dependencies)
                 .selectinload(InnerDependency.depends_on_section)
@@ -83,6 +84,7 @@ class DocumentRepo(BaseRepository[Document]):
             "organization": doc.organization.name,
             "template_id": doc.template_id,
             "template_name": doc.template.name if doc.template else None,
+            "docx_template": doc.docx_template[0].name if doc.docx_template else None,
             "created_at": doc.created_at,
             "updated_at": doc.updated_at,
             "document_type": {

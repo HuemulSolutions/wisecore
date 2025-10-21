@@ -3,12 +3,13 @@ from src.database.repositories.execution_repo import ExecutionRepo
 from src.database.repositories.sectionexec_repo import SectionExecRepo
 from src.services.chunk_service import ChunkService
 from src.database.repositories.llm_repo import LLMRepo
+from src.database.repositories.docx_template_repo import DocxTemplateRepo
 from src.database.models import Execution, Status
 from src.config import system_config
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
-from src.services.docx_utils import insertar_md_como_parrafos
+from src.services.docx_utils import insertar_md_como_parrafos, rellenar_y_devolver_bytes
 
 
 class ExecutionService:
@@ -17,6 +18,7 @@ class ExecutionService:
         self.execution_repo = ExecutionRepo(session)
         self.section_exec_repo = SectionExecRepo(session)
         self.llm_repo = LLMRepo(session)
+        self.docx_template_repo = DocxTemplateRepo(session)
         
     
     @staticmethod
@@ -46,6 +48,18 @@ class ExecutionService:
         buf = BytesIO()
         doc.save(buf)
         return buf.getvalue()
+    
+    
+    @staticmethod
+    def _generate_docx_with_template(template: bytes, data: dict) -> bytes:
+        """
+        Generate a Word document using a template.
+        """
+        try:
+            docx_bytes = rellenar_y_devolver_bytes(template, data)
+            return docx_bytes
+        except Exception as e:
+            raise ValueError(f"Error generating document from template: {str(e)}")
     
     
     async def get_execution(self, execution_id: str):
@@ -180,6 +194,40 @@ class ExecutionService:
         docx_bytes = self._generate_docx_no_template(data)
         return docx_bytes
     
+    async def export_custom_word(self, execution_id: str) -> bytes:
+        """
+        Export a custom Word document based on provided data using the document's template.
+        """
+        section_execs = await self.section_exec_repo.get_sections_by_execution_id(execution_id)
+        if not section_execs:
+            raise ValueError(f"No section executions found for execution ID {execution_id}.")
+        
+        document_id = section_execs[0].execution.document_id
+        
+        docx_template = await self.docx_template_repo.get_by_document_id(document_id)
+        if not docx_template:
+            raise ValueError(f"No DOCX template found for document ID {document_id}.")
+        
+        document_name = section_execs[0].execution.document.name if section_execs[0].execution and section_execs[0].execution.document else "No Title"
+        
+        sorted_execs = sorted(
+            section_execs,
+            key=lambda x: (x.section.order)
+        )
+        
+        data = {
+            "titulo_doc": document_name,
+            "secciones": [
+                {
+                    "nombre": sec_exec.section.name if sec_exec.section else "No Name",
+                    "contenido": sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
+                }
+                for sec_exec in sorted_execs
+            ]
+        }
+        
+        docx_bytes = self._generate_docx_with_template(docx_template.file_data, data)
+        return docx_bytes
     
     async def approve_execution(self, execution_id: str):
         """
@@ -226,4 +274,3 @@ class ExecutionService:
         execution.status = Status.COMPLETED
         updated_execution = await self.execution_repo.update(execution)
         return updated_execution
-        

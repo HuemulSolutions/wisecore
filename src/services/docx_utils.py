@@ -188,6 +188,27 @@ def render_tabla_md(md_lines: List[str], insert_idx: int, parent_element, doc) -
     tbl = OxmlElement("w:tbl")
     parent_element.insert(insert_idx, tbl)
 
+    # Agregar propiedades de tabla con bordes sólidos
+    tblPr = OxmlElement("w:tblPr")
+    tblBorders = OxmlElement("w:tblBorders")
+    
+    # Definir bordes sólidos para toda la tabla
+    border_attrs = {
+        qn("w:val"): "single",
+        qn("w:sz"): "4",
+        qn("w:space"): "0",
+        qn("w:color"): "000000"
+    }
+    
+    for border_name in ["top", "left", "bottom", "right", "insideH", "insideV"]:
+        border_elem = OxmlElement(f"w:{border_name}")
+        for attr, value in border_attrs.items():
+            border_elem.set(attr, value)
+        tblBorders.append(border_elem)
+    
+    tblPr.append(tblBorders)
+    tbl.append(tblPr)
+
     grid = OxmlElement("w:tblGrid")
     for w in col_widths:
         gridCol = OxmlElement("w:gridCol")
@@ -204,15 +225,27 @@ def render_tabla_md(md_lines: List[str], insert_idx: int, parent_element, doc) -
             tcW.set(qn("w:w"), str(col_widths[idx]))
             tcW.set(qn("w:type"), "dxa")
             tcPr.append(tcW)
+            
+            # Agregar sombreado oscuro para headers
+            if bold:
+                shd = OxmlElement("w:shd")
+                shd.set(qn("w:val"), "clear")
+                shd.set(qn("w:color"), "auto")
+                shd.set(qn("w:fill"), "404040")  # Gris oscuro
+                tcPr.append(shd)
+            
             tc.append(tcPr)
             
             if bold:
-                # Para headers, mantener comportamiento simple con negrita
+                # Para headers, texto blanco y negrita
                 p = OxmlElement("w:p")
                 r = OxmlElement("w:r")
                 rPr = OxmlElement("w:rPr")
                 b = OxmlElement("w:b")
+                color = OxmlElement("w:color")
+                color.set(qn("w:val"), "FFFFFF")  # Texto blanco
                 rPr.append(b)
+                rPr.append(color)
                 r.append(rPr)
                 t = OxmlElement("w:t")
                 t.text = val
@@ -313,7 +346,14 @@ def insertar_md_como_parrafos(para: Paragraph, md_text: str) -> None:
             fuente_manual = Pt(14)
         elif stripped.startswith("- "):
             stripped = stripped[2:].strip()
-            estilo = "List Bullet"
+            try:
+                new_para.style = "List Bullet"
+            except KeyError:
+                # Si no existe el estilo, usar formato manual
+                from docx.shared import Inches
+                new_para.paragraph_format.left_indent = Inches(0.25)
+                new_para.paragraph_format.first_line_indent = Inches(-0.25)
+                stripped = "• " + stripped
 
         if estilo:
             new_para.style = estilo
@@ -353,11 +393,14 @@ def reemplazo_inline(p: Paragraph, mapa: Dict[str, str]) -> None:
     p.style = estilo
 
 
-def rellenar_y_devolver_bytes(plantilla_path: str, secciones_dict: Dict) -> bytes:
-    doc = Document(plantilla_path)
+def rellenar_y_devolver_bytes(plantilla: bytes, secciones_dict: Dict) -> bytes:
+    print("Usando plantilla")
+    plantilla_buf = BytesIO(plantilla)
+    doc = Document(plantilla_buf)
 
+    print("Construyendo mapa normalizado")
     norm_map = {
-        normalizer(s["titulo"]): eliminar_linea(s["contenido"])
+        normalizer(s["nombre"]): eliminar_linea(s["contenido"])
         for s in secciones_dict.get("secciones", [])
     }
 
@@ -365,6 +408,7 @@ def rellenar_y_devolver_bytes(plantilla_path: str, secciones_dict: Dict) -> byte
     norm_map[normalizer("titulo")] = titulo_doc
     doc.core_properties.title = titulo_doc
 
+    print("Rellenando plantilla")
     for p in doc.paragraphs:
         m = re.fullmatch(r"\s*\{\{\s*([^\}]+?)\s*\}\}\s*", p.text or "")
         if m:

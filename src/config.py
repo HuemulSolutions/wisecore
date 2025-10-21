@@ -3,9 +3,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 from dataclasses import dataclass, fields
 # Load environment variables from .env file
-load_dotenv()
+# load_dotenv()
 # load_dotenv(dotenv_path=Path(".env.dev"))
-# load_dotenv(dotenv_path=Path(".env.prod"))
+load_dotenv(dotenv_path=Path(".env.prod"))
 
 
 @dataclass
