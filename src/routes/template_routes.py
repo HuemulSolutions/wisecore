@@ -6,7 +6,7 @@ from src.database.core import get_session
 from src.utils import get_transaction_id, get_organization_id
 from src.services.template_service import TemplateService
 from src.services.template_section_service import TemplateSectionService
-from src.schemas import (ResponseSchema, CreateTemplate, CreateTemplateSection, 
+from src.schemas import (ResponseSchema, CreateTemplate, UpdateTemplate, CreateTemplateSection, 
                          CreateTemplateSectionDependency, UpdateSection, UpdateSectionOrder)
 
 router = APIRouter(prefix="/templates")
@@ -93,6 +93,39 @@ async def create_template(template: CreateTemplate,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while creating the template: {str(e)}"}
+        )
+
+@router.put("/{template_id}")
+async def update_template(template_id: str,
+                          template: UpdateTemplate,
+                          session: Session = Depends(get_session),
+                          transaction_id: str = Depends(get_transaction_id)):
+    """
+    Update a template's name and/or description.
+    """
+    template_service = TemplateService(session)
+    try:
+        updated_template = await template_service.update_template(
+            template_id=template_id,
+            name=template.name,
+            description=template.description
+        )
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_template)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the template: {str(e)}"}
         )
 
 

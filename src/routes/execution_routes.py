@@ -252,6 +252,41 @@ async def export_execution_word(execution_id: str,
                 detail={"transaction_id": transaction_id,
                       "error": f"An error occurred while exporting the execution: {str(e)}"}
           )
+          
+@router.get("/export_custom_word/{execution_id}")
+async def export_execution_custom_word(execution_id: str,
+                            session: Session = Depends(get_session),
+                            transaction_id: str = Depends(get_transaction_id)):
+     """
+     Export the results of a specific execution as a downloadable Word file using a custom template.
+     """
+     try:
+          execution_service = ExecutionService(session)
+          export_data = await execution_service.export_custom_word(execution_id)
+          if not export_data:
+                raise HTTPException(
+                 status_code=404,
+                 detail=f"No section executions found for execution ID {execution_id}."
+                )
+          
+          # Generar el nombre del archivo
+          filename = f"execution_{execution_id}_custom.docx"
+          
+          # Retornar como archivo descargable
+          return Response(
+                content=export_data,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={
+                 "Content-Disposition": f"attachment; filename={filename}",
+                 "X-Transaction-ID": transaction_id  # Mantener el transaction_id en headers
+                }
+          )
+     except Exception as e:
+          raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                      "error": f"An error occurred while exporting the execution with custom template: {str(e)}"}
+          )
         
         
 @router.get("/{execution_id}")

@@ -258,7 +258,7 @@ class DocxTemplate(BaseClass):
     file_data = Column(LargeBinary, nullable=False)  # El archivo en sí
     document_id = Column(UUID(as_uuid=True), ForeignKey("document.id"), nullable=False)
     
-    document = relationship("Document")
+    document = relationship("Document", back_populates="docx_template")
     
 
 class LLM(BaseClass):

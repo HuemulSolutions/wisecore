@@ -43,6 +43,26 @@ class TemplateService:
         Retrieve all templates.
         """
         return await self.template_repo.get_templates(organization_id)
+
+    async def update_template(self, template_id: str, name: str = None, description: str = None) -> Template:
+        """
+        Update a template's name and/or description.
+        """
+        template = await self.template_repo.get_by_id(template_id)
+        if not template:
+            raise ValueError(f"Template with ID {template_id} not found.")
+
+        if name and name != template.name:
+            existing_template = await self.template_repo.get_by_name(name, organization_id=template.organization_id)
+            if existing_template and existing_template.id != template_id:
+                raise ValueError(f"Template with name {name} already exists.")
+            template.name = name
+
+        if description is not None:
+            template.description = description
+
+        updated_template = await self.template_repo.update(template)
+        return updated_template
     
     async def delete_template(self, template_id: str) -> None:
         """

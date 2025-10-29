@@ -40,6 +40,15 @@ class CreateTemplate(BaseModel):
     name: str
     description: Optional[str] = None  # Optional field, can be None
     
+    
+
+class UpdateTemplate(BaseModel):
+    """
+    Schema for updating a template's name and/or description.
+    """
+    name: Optional[str] = None
+    description: Optional[str] = None
+    
 class CreateTemplateSection(BaseModel):
     """
     Schema for creating a template section.
