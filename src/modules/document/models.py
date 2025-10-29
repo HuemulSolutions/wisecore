@@ -1,8 +1,7 @@
 from src.database.base_model import BaseModel
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, Integer, LargeBinary
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from enum import Enum
 
 class Document(BaseModel):
     __tablename__ = "document"
@@ -47,11 +46,4 @@ class Dependency(BaseModel):
     
     def __repr__(self):
         return f"<Dependency(document_id={self.document_id}, depends_on_id={self.depends_on})>"
-    
-    
-class Status(Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    APPROVED = "approved"    
+

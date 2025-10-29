@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import TemplateSectionRepo
 from .models import TemplateSection
-from src.modules.templates.service import TemplateService
+from src.modules.template.service import TemplateService
 
 class TemplateSectionService:
     def __init__(self, session: AsyncSession):
@@ -27,6 +27,13 @@ class TemplateSectionService:
         new_section = TemplateSection(name=name, template_id=template_id,
                                      order=order, prompt=prompt, type=type)
         created_section = await self.template_section_repo.add(new_section, dependencies=dependencies)
+        return created_section
+    
+    async def add_template_section(self, section: TemplateSection) -> TemplateSection:
+        """
+        Add an existing template section.
+        """
+        created_section = await self.template_section_repo.add(section)
         return created_section
     
     async def delete_template_section(self, section_id: str) -> None:

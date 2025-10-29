@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import SectionRepo
-from src.database.models import Section
+from .models import Section
 
 class SectionService:
     def __init__(self, session: AsyncSession):

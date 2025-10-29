@@ -23,7 +23,7 @@ class TemplateSection(BaseModel):
                                        back_populates="depends_on_template_section", cascade="all, delete-orphan")
     
     # Hacer que las secciones que referencian a esta TemplateSection se desvinculen (SET NULL) al borrar
-    # sections = relationship("Section", back_populates="template_section", passive_deletes=True)
+    sections = relationship("Section", back_populates="template_section", passive_deletes=True)
     
     def __repr__(self):
         return f"<TemplateSection(id={self.id}, name='{self.name}', order={self.order})>"

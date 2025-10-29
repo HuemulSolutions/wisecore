@@ -13,3 +13,10 @@ class LLMService:
         """
         llms = await self.llm_repo.get_all()
         return llms
+    
+    async def get_by_name(self, name: str) -> LLM:
+        """
+        Retrieve an LLM by its name.
+        """
+        llm = await self.llm_repo.get_by_name(name)
+        return llm

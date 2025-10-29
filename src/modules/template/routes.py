@@ -4,9 +4,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from src.utils import get_transaction_id, get_organization_id
-from .service import TemplateService
 from src.schemas import (ResponseSchema)
 from .schemas import (CreateTemplate, UpdateTemplate)
+from .service import TemplateService
 
 router = APIRouter(prefix="/templates")
 

@@ -12,6 +12,7 @@ class Template(BaseModel):
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organization.id"), nullable=False)
     template_sections = relationship("TemplateSection", back_populates="template", cascade="all, delete-orphan")
     organization = relationship("Organization", back_populates="templates")
+    documents = relationship("Document", back_populates="template")
 
     
     def __repr__(self):

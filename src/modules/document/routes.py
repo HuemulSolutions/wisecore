@@ -3,9 +3,8 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from .service import DocumentService
-from src.services.execution_service import ExecutionService
+from src.modules.execution.service import ExecutionService
 from src.services.context_service import ContextService
-from src.services.dependency_service import DependencyService
 from src.services.docx_template_service import DocxTemplateService
 from src.utils import get_transaction_id, get_organization_id
 from src.schemas import ResponseSchema
@@ -441,46 +440,7 @@ async def add_context_file_to_document(document_id: str,
                       "error": f"An error occurred while adding context file to the document: {str(e)}"}
           )
 
-@router.post("/{document_id}/docx_template")
-async def upload_docx_template(document_id: str,
-                               file: UploadFile = File(...),
-                               session: Session = Depends(get_session),
-                               transaction_id: str = Depends(get_transaction_id)):
-    """
-    Upload or replace the DOCX template associated with a document.
-    """
-    docx_template_service = DocxTemplateService(session)
-    try:
-        template = await docx_template_service.upload_docx_template(
-            document_id=document_id,
-            file=file,
-        )
-        template_payload = jsonable_encoder({
-            "id": template.id,
-            "name": template.name,
-            "file_name": template.file_name,
-            "mime_type": template.mime_type,
-            "file_size": template.file_size,
-            "document_id": template.document_id,
-            "created_at": template.created_at,
-            "updated_at": template.updated_at,
-        })
-        return ResponseSchema(
-            transaction_id=transaction_id,
-            data=template_payload
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail={"transaction_id": transaction_id,
-                    "error": str(e)}
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"transaction_id": transaction_id,
-                    "error": f"An error occurred while uploading the DOCX template: {str(e)}"}
-        )
+
           
 @router.delete("/{document_id}/context/{context_id}")
 async def delete_document_context(document_id: str,

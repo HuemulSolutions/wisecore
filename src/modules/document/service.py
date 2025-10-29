@@ -1,24 +1,22 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import DocumentRepo
-from src.database.repositories.inner_depend_repo import InnerDependencyRepo
-from src.database.repositories.dependency_repo import DependencyRepo
+# from src.database.repositories.inner_depend_repo import InnerDependencyRepo
+# from src.database.repositories.dependency_repo import DependencyRepo
 from src.database.repositories.execution_repo import ExecutionRepo
-from src.database.repositories.context_repo import ContextRepo
 from .models import Document
-from src.database.models import (Document, Section, InnerDependency, Execution, Status, Dependency)
+from src.database.models import (Document, Section, Execution, Status, Dependency)
 from src.services.generation_service import generate_document_structure
-from src.modules.templates.service import TemplateService
+from src.modules.template.service import TemplateService
 from src.modules.section.service import SectionService
 from src.modules.organization.service import OrganizationService
+from src.modules.document_type.service import DocumentTypeService
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.document_repo = DocumentRepo(session)
-        self.inner_dependency_repo = InnerDependencyRepo(session)
-        self.dependency_repo = DependencyRepo(session)
+        # self.inner_dependency_repo = InnerDependencyRepo(session)
         self.execution_repo = ExecutionRepo(session)
-        self.context_repo = ContextRepo(session)
 
     async def get_document_by_id(self, document_id: str):
         """
@@ -87,14 +85,17 @@ class DocumentService:
         Create a new document.
         """
         organization_service = OrganizationService(self.session)
-        organization = await organization_service.check_organization_exists(organization_id)
-        if not organization:
+        if not await organization_service.check_organization_exists(organization_id):
             raise ValueError(f"Organization with ID {organization_id} not found.")
         
         template_service = TemplateService(self.session)
-        
         if template_id and not await template_service.template_exists(template_id):
             raise ValueError(f"Template with ID {template_id} not found.")
+        
+        if document_type_id:
+            document_type_service = DocumentTypeService(self.session)
+            if not await document_type_service.check_if_document_type_exists(document_type_id):
+                raise ValueError(f"Document type with ID {document_type_id} not found.")
         
         if await self.document_repo.get_by_name(name):
             raise ValueError(f"Document with name {name} already exists.")
@@ -143,11 +144,12 @@ class DocumentService:
                     section_id = template_to_section_mapping[template_section.id]
                     depends_on_section_id = template_to_section_mapping[template_dependency.depends_on_template_section_id]
                     
-                    inner_dependency = InnerDependency(
-                        section_id=section_id,
-                        depends_on_section_id=depends_on_section_id
-                    )
-                    await self.inner_dependency_repo.add(inner_dependency)
+                    await section_service.add_dependency(section_id, depends_on_section_id)
+                    # inner_dependency = InnerDependency(
+                    #     section_id=section_id,
+                    #     depends_on_section_id=depends_on_section_id
+                    # )
+                    # await self.inner_dependency_repo.add(inner_dependency)
         
         # Commit all changes
         await self.session.flush()
@@ -231,11 +233,13 @@ class DocumentService:
                     raise ValueError(f"Dependency '{dependency_name}' not found for section '{section_data['name']}'")
                 
                 dependency_section = section_map[dependency_name]
-                inner_dependency = InnerDependency(
-                    section_id=current_section.id,
-                    depends_on_section_id=dependency_section.id
-                )
-                await self.inner_dependency_repo.add(inner_dependency)
+                
+                await section_service.add_dependency(current_section.id, dependency_section.id)
+                # inner_dependency = InnerDependency(
+                #     section_id=current_section.id,
+                #     depends_on_section_id=dependency_section.id
+                # )
+                # await self.inner_dependency_repo.add(inner_dependency)
 
         # Flush changes to database
         await self.session.flush()
@@ -290,7 +294,7 @@ class DocumentService:
             depends_on_document_id=depends_on_document_id,
             depends_on_section_id=depends_on_section_id
         )
-        await self.dependency_repo.add(new_dependency)
+        await self.document_repo.add_dependency(new_dependency)
         return new_dependency
     
     async def delete_document_dependency(self, document_id: str, depends_on_document_id: str):
@@ -307,6 +311,6 @@ class DocumentService:
         if not dependency:
             raise ValueError(f"No dependency found between {document_id} and {depends_on_document_id}.")
         
-        await self.dependency_repo.delete(dependency)
+        await self.document_repo.delete_dependency(dependency)
         return {"message": "Dependency removed successfully."}
 

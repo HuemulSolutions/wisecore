@@ -1,6 +1,7 @@
 from src.database.base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from .models import Document, Status, Dependency
+from .models import Document, Dependency
+from src.modules.execution.models import Status
 from src.modules.section.models import Section, InnerDependency
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -238,6 +239,21 @@ class DocumentRepo(BaseRepository[Document]):
             dependency_content = await self.get_document_content(dependency.depends_on_document_id)
             context_str += f"{dependency_content}\n"
         return context_str
+    
+    async def add_dependency(self, dependency: Dependency) -> Dependency:
+        """
+        Add a new dependency to the document.
+        """
+        self.session.add(dependency)
+        await self.session.flush()
+        return dependency
+    
+    async def delete_dependency(self, dependency: Dependency) -> None:
+        """
+        Delete a dependency from the document.
+        """
+        await self.session.delete(dependency)
+        await self.session.flush()
     
     async def get_dependencies(self, document_id: UUID) -> list[dict]:
         """

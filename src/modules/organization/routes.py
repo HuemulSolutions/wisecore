@@ -2,10 +2,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
-from src.services.organization_service import OrganizationService
-from src.schemas import ResponseSchema
-from .schemas import CreateOrganization
 from src.utils import get_transaction_id
+from src.schemas import ResponseSchema
+from .service import OrganizationService
+from .schemas import CreateOrganization
+
 
 
 router = APIRouter(prefix="/organizations")

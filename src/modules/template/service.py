@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import TemplateRepo
-from src.modules.template_section.repository import TemplateSectionRepo
-from src.database.repositories.organization_repo import OrganizationRepo
+from src.modules.template_section.service import TemplateSectionService
+from src.modules.organization.service import OrganizationService
 from .models import Template
 from src.modules.template_section.models import TemplateSection
 from src.services.generation_service import generate_document_structure
@@ -10,8 +10,6 @@ class TemplateService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.template_repo = TemplateRepo(session)
-        self.template_section_repo = TemplateSectionRepo(session)
-        self.organization_repo = OrganizationRepo(session)
         
     async def get_template_by_id(self, template_id: str) -> Template:
         """
@@ -39,7 +37,7 @@ class TemplateService:
         if template:
             raise ValueError(f"Template with name {name} already exists.")
         
-        if not await self.organization_repo.get_by_id(organization_id):
+        if not await OrganizationService(self.session).check_organization_exists(organization_id):
             raise ValueError(f"Organization with ID {organization_id} not found.")
         new_template = Template(name=name, organization_id=organization_id, description=description)
         created_template = await self.template_repo.add(new_template)
@@ -128,6 +126,7 @@ class TemplateService:
         section_map = {}
         
         # Primero crear todas las secciones
+        section_service = TemplateSectionService(self.session)
         for section_data in sections:
             template_section = TemplateSection(
                 name=section_data["name"],
@@ -136,7 +135,7 @@ class TemplateService:
                 prompt=section_data["prompt"],
                 template_id=template_id
             )
-            created_section = await self.template_section_repo.add(template_section)
+            created_section = await section_service.add_template_section(template_section)
             section_map[section_data["name"]] = created_section
         
         # Luego crear las dependencias
@@ -149,7 +148,7 @@ class TemplateService:
                     raise ValueError(f"Dependency '{dependency_name}' not found for section '{section_data['name']}'")
                 
                 dependency_section = section_map[dependency_name]
-                await self.template_section_repo.add_dependency(
+                await section_service.add_dependency(
                     current_section.id,
                     dependency_section.id
                 )
