@@ -1,6 +1,7 @@
 from src.database.base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import TemplateSection, TemplateSectionDependency
+from src.modules.template.models import Template
 from sqlalchemy.future import select
 
 class TemplateSectionRepo(BaseRepository[TemplateSection]):
@@ -206,3 +207,12 @@ class TemplateSectionRepo(BaseRepository[TemplateSection]):
             # Si hay cualquier error, revertir la transacción
             await self.session.rollback()
             raise e
+        
+    async def check_if_template_exists(self, template_id: str) -> bool:
+        """
+        Check if a template with the given ID exists.
+        """
+        query = select(Template).where(Template.id == template_id)
+        result = await self.session.execute(query)
+        template = result.scalar_one_or_none()
+        return template is not None

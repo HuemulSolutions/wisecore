@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import TemplateSectionRepo
 from .models import TemplateSection
-from src.modules.template.service import TemplateService
 
 class TemplateSectionService:
     def __init__(self, session: AsyncSession):
@@ -14,8 +13,9 @@ class TemplateSectionService:
         Create a new template section.
         """
         
-        template_service = TemplateService(self.session)
-        template = await template_service.get_template_by_id(template_id)
+        template = await self.template_section_repo.check_if_template_exists(template_id)
+        if not template:
+            raise ValueError(f"Template with ID {template_id} not found.")
         
         check_name = await self.template_section_repo.get_by_name(name, template_id)
         if check_name:

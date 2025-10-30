@@ -27,6 +27,7 @@ from src.modules.folder.routes import router as folder_router
 from src.modules.section.routes import router as section_router
 from src.modules.section_execution.routes import router as section_execution_router
 from src.modules.search.routes import router as search_router
+from src.modules.chatbot.routes import router as chatbot_router
 
 from src.database import load_models
 from contextlib import asynccontextmanager
@@ -56,6 +57,7 @@ app.add_middleware(
 
 # Include the generation router
 app.include_router(generation_router)
+app.include_router(chatbot_router, prefix="/api/v1", tags=["Chatbot"])
 app.include_router(execution_router, prefix="/api/v1", tags=["Executions"])
 app.include_router(document_router, prefix="/api/v1", tags=["Documents"])
 app.include_router(template_router, prefix="/api/v1", tags=["Templates"])
