@@ -4,11 +4,15 @@ from src.config import system_config
 
 def get_llm(llm: str)-> BaseChatModel:
     if llm == "gpt-4.1":
+        # gpt = init_chat_model(
+        #     model="azure-gpt-4.1",
+        #     model_provider="openai",
+        #     base_url=system_config.MODEL_GATEWAY_URL,
+        #     api_key=system_config.MODEL_GATEWAY_APIKEY,
+        # )
         gpt = init_chat_model(
-            model="azure-gpt-4.1",
-            model_provider="openai",
-            base_url=system_config.MODEL_GATEWAY_URL,
-            api_key=system_config.MODEL_GATEWAY_APIKEY,
+            model="azure_openai:gpt-4.1",
+            azure_deployment="gpt-4.1",
         )
         return gpt
     elif llm == "claude-sonnet-4":
