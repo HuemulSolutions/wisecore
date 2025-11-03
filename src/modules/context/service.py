@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database.repositories.context_repo import ContextRepo
+from .repository import ContextRepo
 from src.modules.document.service import DocumentService
 from .models import Context
 from fastapi import UploadFile

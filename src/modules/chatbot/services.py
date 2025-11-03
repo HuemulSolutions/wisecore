@@ -1,10 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database.repositories.sectionexec_repo import SectionExecRepo
+from src.modules.execution.service import ExecutionService
 
 class ChatbotServices():
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.section_exec_repo = SectionExecRepo(session)
         
         
     async def get_execution_content(self, execution_id: str) -> str:
@@ -12,10 +11,8 @@ class ChatbotServices():
         Retrieve the content of an execution by its ID.
         """
         
-        section_execs = await self.section_exec_repo.get_sections_by_execution_id(execution_id)
-        if not section_execs:
-            raise ValueError(f"Section execution with ID {execution_id} not found.")
-        
+        execution_content = await ExecutionService(self.session).get_execution(execution_id)
+        section_execs = execution_content.section_executions
         if not section_execs:
             raise ValueError(f"No section executions found for execution ID {execution_id}.")
         sorted_execs = sorted(

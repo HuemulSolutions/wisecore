@@ -4,7 +4,7 @@ from src.modules.template_section.service import TemplateSectionService
 from src.modules.organization.service import OrganizationService
 from .models import Template
 from src.modules.template_section.models import TemplateSection
-from src.services.generation_service import generate_document_structure
+from src.modules.generation.service import generate_document_structure
 
 class TemplateService:
     def __init__(self, session: AsyncSession):
@@ -181,4 +181,5 @@ class TemplateService:
         if not template:
             raise ValueError(f"Template with ID {template_id} not found.")
         
-        return self.template_repo.get_template_sections(template_id)
+        sections = await self.template_repo.get_template_sections(template_id)
+        return sections

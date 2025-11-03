@@ -1,4 +1,4 @@
-from src.database.repositories.chunk_repo import ChunkRepo
+from .repository import ChunkRepo
 from src.modules.execution.service import ExecutionService
 from .models import Chunk
 from sqlalchemy.ext.asyncio import AsyncSession

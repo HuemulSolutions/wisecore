@@ -28,12 +28,7 @@ class CreateDocumentDependency(BaseModel):
     section_id: Optional[str] = None
     depends_on_section_id: Optional[str] = None
     
-class AddDocumentContextText(BaseModel):
-    """
-    Schema for adding context text to a document.
-    """
-    name: str
-    content: str
+
     
 class UpdateDocument(BaseModel):
     """

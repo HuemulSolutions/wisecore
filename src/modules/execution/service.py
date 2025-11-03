@@ -3,13 +3,13 @@ from .repository import ExecutionRepo
 from src.modules.section_execution.service import SectionExecutionService
 from src.modules.docx_template.service import DocxTemplateService
 from src.modules.llm.service import LLMService
-from src.services.chunk_service import ChunkService
+from src.modules.search.service import ChunkService
 from .models import Execution, Status
 from src.config import system_config
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
-from src.services.docx_utils import insertar_md_como_parrafos, rellenar_y_devolver_bytes
+from .utils import insertar_md_como_parrafos, rellenar_y_devolver_bytes
 
 
 class ExecutionService:
@@ -83,9 +83,7 @@ class ExecutionService:
         """
         
         llm_name = system_config.DEFAULT_LLM
-        
-        llm_service = LLMService(self.session)
-        llm = await llm_service.get_by_name(llm_name)
+        llm = await LLMService(self.session).get_llm_by_name(llm_name)
         if not llm:
             raise ValueError(f"LLM with name {llm_name} not found.")      
         
@@ -103,7 +101,7 @@ class ExecutionService:
         """
         Get the status of a specific execution.
         """
-        execution = await self.execution_repo.get_by_id(execution_id)
+        execution = await self.execution_repo.get_execution(execution_id)
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution.status
@@ -127,7 +125,7 @@ class ExecutionService:
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         
-        llm = await self.llm_repo.get_by_id(llm_id)
+        llm = await LLMService(self.session).check_llm_exists(llm_id)
         if not llm:
             raise ValueError(f"LLM with ID {llm_id} not found.")
         
@@ -160,7 +158,7 @@ class ExecutionService:
     #     export_data = "\n\n-------\n\n".join([i.custom_output if i.custom_output else i.output for i in sorted_execs])
     #     return export_data
     
-    async def export_execution_markdown(self, execution_id: str) -> list:
+    async def export_execution_markdown(self, execution_id: str) -> str:
         """
         Export the section executions for a specific execution.
         """
@@ -168,12 +166,15 @@ class ExecutionService:
         section_execs = execution.sections_executions
         if not section_execs:
             raise ValueError(f"No section executions found for execution ID {execution_id}.")
-        print("results", section_execs)
+        
         sorted_execs = sorted(
             section_execs,
-            key=lambda x: (x.section.order)
+            key=lambda x: (x.order)
         )
-        export_data = "\n\n-------\n\n".join([i.custom_output if i.custom_output else i.output for i in sorted_execs])
+        export_data = "\n\n-------\n\n".join([
+            i.custom_output if i.custom_output else i.output 
+            for i in sorted_execs
+        ])
         return export_data
     
     
@@ -224,13 +225,13 @@ class ExecutionService:
         
         sorted_execs = sorted(
             section_execs,
-            key=lambda x: (x.section.order)
+            key=lambda x: (x.order)
         )
         data = {
             "titulo_doc": document_name,
             "secciones": [
                 {
-                    "nombre": sec_exec.section.name if sec_exec.section else "No Name",
+                    "nombre": sec_exec.name if sec_exec.name else "No Name",
                     "contenido": sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
                 }
                 for sec_exec in sorted_execs

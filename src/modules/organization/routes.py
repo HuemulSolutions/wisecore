@@ -7,10 +7,7 @@ from src.schemas import ResponseSchema
 from .service import OrganizationService
 from .schemas import CreateOrganization
 
-
-
 router = APIRouter(prefix="/organizations")
-
 
 @router.get("/")
 async def get_all_organizations(session: Session = Depends(get_session),

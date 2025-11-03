@@ -2,10 +2,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import DocumentRepo
 # from src.database.repositories.inner_depend_repo import InnerDependencyRepo
 # from src.database.repositories.dependency_repo import DependencyRepo
-from src.database.repositories.execution_repo import ExecutionRepo
 from .models import Document
-from src.database.models import (Document, Section, Execution, Status, Dependency)
-from src.services.generation_service import generate_document_structure
+from .models import Document, Dependency
+from src.modules.execution.models import Execution, Status
+from src.modules.section.models import Section
+from src.modules.generation.service import generate_document_structure
 from src.modules.template.service import TemplateService
 from src.modules.section.service import SectionService
 from src.modules.organization.service import OrganizationService
@@ -15,8 +16,6 @@ class DocumentService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.document_repo = DocumentRepo(session)
-        # self.inner_dependency_repo = InnerDependencyRepo(session)
-        self.execution_repo = ExecutionRepo(session)
 
     async def get_document_by_id(self, document_id: str):
         """
@@ -154,20 +153,6 @@ class DocumentService:
         # Commit all changes
         await self.session.flush()
                 
-            
-    async def _create_or_get_execution_for_content(self, document_id: str):
-        executions = await self.execution_repo.get_executions_by_doc_id(document_id)
-        if executions:
-            # If there are existing executions, return the most recent one
-            return executions[-1]
-        # If no executions exist, create a new one
-        new_execution = Execution(
-            document_id=document_id,
-            status=Status.APPROVED
-        )
-        new_execution = await self.execution_repo.add(new_execution)
-        return new_execution
-    
     
     async def get_document_content(self, document_id: str, execution_id: str = None):
         """

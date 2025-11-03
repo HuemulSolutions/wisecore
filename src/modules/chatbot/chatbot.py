@@ -1,9 +1,8 @@
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from .nodes import entrypoint, agent, State
 from src.config import system_config
-from typing import Tuple, Dict, Any, Optional
+from typing import Optional
 from langgraph.graph import START, StateGraph, END
-from langchain_core.messages import HumanMessage
 import uuid
 
 def build_graph() -> StateGraph:

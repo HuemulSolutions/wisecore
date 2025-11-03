@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
-from src.services.library_services import LibraryService
+from .service import FolderService
 from src.schemas import ResponseSchema
 from .schemas import CreateNewFolder
 from src.utils import get_transaction_id, get_organization_id
@@ -18,7 +18,7 @@ async def create_folder(request: CreateNewFolder,
     Create a new folder. If parent_folder_id is provided, the new folder will be created as a subfolder.
     """ 
     try:
-        service = LibraryService(session)
+        service = FolderService(session)
         new_folder = await service.create_folder(
             name=request.name, 
             organization_id=request.organization_id, 
@@ -49,7 +49,7 @@ async def get_folder_content(folder_id: str, organization_id: str = Depends(get_
         if folder_id == "root":
             folder_id = None  # Indicate root level
 
-        service = LibraryService(session)
+        service = FolderService(session)
         content = await service.get_folder_content(folder_id, organization_id)
         
         return ResponseSchema(
@@ -68,7 +68,7 @@ async def delete_folder(folder_id: str, session: Session = Depends(get_session),
     Delete a folder by its ID. This will also delete all subfolders and documents within it.
     """
     try:
-        service = LibraryService(session)
+        service = FolderService(session)
         await service.delete_folder(folder_id)
         
         return ResponseSchema(

@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile
-from src.database.repositories.docx_template_repo import DocxTemplateRepo
+from .repository import DocxTemplateRepo
 from src.modules.document.service import DocumentService
-from src.database.models import DocxTemplate
+from .models import DocxTemplate
 
 
 class DocxTemplateService:

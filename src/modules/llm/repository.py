@@ -1,7 +1,6 @@
 from src.database.base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 from .models import LLM
 
 class LLMRepo(BaseRepository[LLM]):

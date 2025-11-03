@@ -2,7 +2,6 @@ from typing_extensions import TypedDict, Optional, Annotated
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph.message import add_messages
-from langchain.chat_models import init_chat_model
 from src.database.core import get_graph_session
 from src.llm.llm import get_llm
 from .services import ChatbotServices

@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from src.logger import setup_logging
-from src.routes.generation_routes import router as generation_router
+# from src.routes.generation_routes import router as generation_router
 # from src.routes.execution_routes import router as execution_router
 # from src.routes.document_routes import router as document_router
 # from src.routes.section_routes import router as section_router
@@ -28,6 +28,8 @@ from src.modules.section.routes import router as section_router
 from src.modules.section_execution.routes import router as section_execution_router
 from src.modules.search.routes import router as search_router
 from src.modules.chatbot.routes import router as chatbot_router
+from src.modules.generation.routes import router as generation_router
+from src.modules.context.routes import router as context_router
 
 from src.database import load_models
 from contextlib import asynccontextmanager
@@ -56,10 +58,11 @@ app.add_middleware(
 
 
 # Include the generation router
-app.include_router(generation_router)
+app.include_router(generation_router, prefix="/api/v1", tags=["Generation"])
 app.include_router(chatbot_router, prefix="/api/v1", tags=["Chatbot"])
 app.include_router(execution_router, prefix="/api/v1", tags=["Executions"])
 app.include_router(document_router, prefix="/api/v1", tags=["Documents"])
+app.include_router(context_router, prefix="/api/v1", tags=["Context"])
 app.include_router(template_router, prefix="/api/v1", tags=["Templates"])
 app.include_router(template_section_router, prefix="/api/v1", tags=["Template Sections"])
 app.include_router(organization_router, prefix="/api/v1", tags=["Organizations"])

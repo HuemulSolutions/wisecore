@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from src.graph.stream import stream_graph
-from src.services.generation_service import (fix_section_service, redact_section_prompt_service)
-from src.schemas import GenerateDocument, FixSection, RedactSectionPrompt, Chatbot
-# from src.chatbot.chatbot import stream
+from .service import (fix_section_service, redact_section_prompt_service)
+from .schemas import GenerateDocument, FixSection, RedactSectionPrompt
 
 
 router = APIRouter(prefix="/generation")

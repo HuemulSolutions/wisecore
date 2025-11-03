@@ -3,7 +3,8 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from .service import ExecutionService
-from src.schemas import ResponseSchema, ModifySection, UpdateLLM
+from src.schemas import ResponseSchema, ModifySection
+from .schemas import UpdateLLM
 from src.utils import get_transaction_id
 
 
@@ -152,34 +153,35 @@ async def update_llm(execution_id: str,
                     "error": f"An error occurred while updating the LLM: {str(e)}"}
         )
         
-@router.put("/modify_content/{section_execution_id}")
-async def modify_section_content(section_execution_id: str,
-                                    request: ModifySection,
-                                    session: Session = Depends(get_session),
-                                    transaction_id: str = Depends(get_transaction_id)):
-        """
-        Modify the content of a section execution.
-        """
-        try:
-            execution_service = ExecutionService(session)
-            updated_execution = await execution_service.modify_section_exec_content(section_execution_id, request.content)
+# Se mueve a rutas de section_execution
+# @router.put("/modify_content/{section_execution_id}")
+# async def modify_section_content(section_execution_id: str,
+#                                     request: ModifySection,
+#                                     session: Session = Depends(get_session),
+#                                     transaction_id: str = Depends(get_transaction_id)):
+#         """
+#         Modify the content of a section execution.
+#         """
+#         try:
+#             execution_service = ExecutionService(session)
+#             updated_execution = await execution_service.modify_section_exec_content(section_execution_id, request.content)
             
-            return ResponseSchema(
-                transaction_id=transaction_id,
-                data=jsonable_encoder(updated_execution)
-            )
-        except ValueError as e:
-            raise HTTPException(
-                status_code=400,
-                detail={"transaction_id": transaction_id,
-                        "error": str(e)}
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail={"transaction_id": transaction_id,
-                        "error": f"An error occurred while modifying the section content: {str(e)}"}
-            )
+#             return ResponseSchema(
+#                 transaction_id=transaction_id,
+#                 data=jsonable_encoder(updated_execution)
+#             )
+#         except ValueError as e:
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail={"transaction_id": transaction_id,
+#                         "error": str(e)}
+#             )
+#         except Exception as e:
+#             raise HTTPException(
+#                 status_code=500,
+#                 detail={"transaction_id": transaction_id,
+#                         "error": f"An error occurred while modifying the section content: {str(e)}"}
+#             )
             
             
 

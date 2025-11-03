@@ -15,7 +15,12 @@ class FolderRepo(BaseRepository[Folder]):
         """
         Retrieve a folder by its name and optional parent_folder_id.
         """
-        query = select(self.model).where(self.model.name == name and self.model.parent_folder_id == parent_folder_id)
+        query = select(self.model).where(self.model.name == name)
+        if parent_folder_id is None:
+            query = query.where(self.model.parent_folder_id.is_(None))
+        else:
+            query = query.where(self.model.parent_folder_id == parent_folder_id)
+
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
         

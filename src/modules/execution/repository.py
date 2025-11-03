@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 from .models import Execution, Status
+import asyncio
 
 class ExecutionRepo(BaseRepository[Execution]):
     def __init__(self, session: AsyncSession):
@@ -87,13 +88,15 @@ class ExecutionRepo(BaseRepository[Execution]):
     async def get_execution_sections(self, execution_id: str) -> Execution:
         """
         Retrieve all section executions for a specific execution ID.
-        """
+        """            
         query = (select(self.model)
                  .options(joinedload(self.model.sections_executions))
                  .options(joinedload(self.model.document))
                  .where(self.model.id == execution_id))
+        
         result = await self.session.execute(query)
-        execution = result.scalar_one_or_none()
+        execution = result.unique().scalar_one_or_none()
+        
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution
@@ -120,6 +123,10 @@ class ExecutionRepo(BaseRepository[Execution]):
         """
         Retrieve an execution by its ID with the associated section executions
         """
+        # Verificar contexto asyncio
+        if not asyncio.current_task():
+            raise RuntimeError("This method must be called from within an async context")
+            
         query = (select(self.model)
                  .options(joinedload(self.model.sections_executions))
                  .where(self.model.id == execution_id))
