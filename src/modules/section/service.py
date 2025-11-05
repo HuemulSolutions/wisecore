@@ -20,8 +20,8 @@ class SectionService:
         if check_name:
             raise ValueError(f"Document section with name {name} already exists in this document.")
 
-        
-        last_order = document.sections[-1].order if document.sections else 0
+        sections = await self.section_repo.get_sections_by_doc_id(document_id)
+        last_order = sections[-1].order if sections else 0
         order = last_order + 1
         
         
@@ -42,6 +42,14 @@ class SectionService:
         Retrieve all sections for a specific document.
         """
         sections = await self.section_repo.get_sections_by_doc_id(document_id)
+        return sections
+    
+    
+    async def get_document_sections_graph(self, document_id: str):
+        """
+        Retrieve all sections for a specific document for graph processing.
+        """
+        sections = await self.section_repo.get_sections_by_doc_id_graph(document_id)
         return sections
     
     async def get_section_by_id(self, section_id: str) -> Section:

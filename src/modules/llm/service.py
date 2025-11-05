@@ -29,3 +29,10 @@ class LLMService:
         """
         llm = await self.llm_repo.get_by_id(llm_id)
         return llm
+    
+    async def get_llm_by_execution_id(self, execution_id: str) -> LLM:
+        """
+        Retrieve an LLM associated with a specific execution ID.
+        """
+        llm = await self.llm_repo.get_by_execution_id(execution_id)
+        return llm.name

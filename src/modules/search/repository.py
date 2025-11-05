@@ -32,6 +32,18 @@ class ChunkRepo(BaseRepository[Chunk]):
             input=text,
         )
         return embedding.data[0].embedding
+    
+    
+    async def get_execution_to_chunking(self, execution_id: str) -> Execution:
+        """
+        Retrieve an execution by its ID with the associated section executions
+        """
+            
+        query = (select(Execution)
+                 .options(joinedload(Execution.sections_executions))
+                 .where(Execution.id == execution_id))
+        result = await self.session.execute(query)
+        return result.unique().scalar_one_or_none()
         
     async def create_chunks(self, chunks: List[Chunk]) -> List[Chunk]:
         """
@@ -92,7 +104,7 @@ class ChunkRepo(BaseRepository[Chunk]):
         chunks_to_delete = result.scalars().all()
         
         if not chunks_to_delete:
-            return 0
+            raise ValueError(f"No chunks found for execution ID {execution_id}.")
         
         for chunk in chunks_to_delete:
             await self.session.delete(chunk)

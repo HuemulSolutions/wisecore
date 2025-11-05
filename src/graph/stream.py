@@ -2,7 +2,7 @@ from .graph import compiled_graph
 from .nodes import State
 from src.database.core import get_graph_session
 from src.graph.services import GraphServices
-from src.database.models import Status
+from src.modules.execution.models import Status
 import asyncio
 from typing import AsyncGenerator, Optional
 

@@ -208,11 +208,20 @@ class TemplateSectionRepo(BaseRepository[TemplateSection]):
             await self.session.rollback()
             raise e
         
-    async def check_if_template_exists(self, template_id: str) -> bool:
+    async def check_if_template_exists(self, template_id: str) -> Template:
         """
         Check if a template with the given ID exists.
         """
         query = select(Template).where(Template.id == template_id)
         result = await self.session.execute(query)
         template = result.scalar_one_or_none()
-        return template is not None
+        return template
+    
+    async def get_last_order(self, template_id: str) -> int:
+        """
+        Get the highest order number among the sections of a given template.
+        """
+        query = select(self.model).where(self.model.template_id == template_id).order_by(self.model.order.desc())
+        result = await self.session.execute(query)
+        last_section = result.scalars().first()
+        return last_section.order if last_section else 0

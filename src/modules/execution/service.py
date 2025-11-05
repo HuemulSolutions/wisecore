@@ -5,6 +5,7 @@ from src.modules.docx_template.service import DocxTemplateService
 from src.modules.llm.service import LLMService
 from src.modules.search.service import ChunkService
 from .models import Execution, Status
+from src.modules.section_execution.models import SectionExecution
 from src.config import system_config
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -67,6 +68,25 @@ class ExecutionService:
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution
+    
+    async def get_execution_object(self, execution_id: str, with_model: bool = False):
+        """
+        Retrieve an execution object by its ID.
+        """
+        execution = await self.execution_repo.get_execution(execution_id, with_model=with_model)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        return execution
+    
+    async def get_sections_by_execution_id(self, execution_id: str) -> list[SectionExecution]:
+        """
+        Retrieve all sections associated with a specific execution.
+        """
+        execution = await self.execution_repo.get_execution_sections(execution_id)
+        sections = execution.sections_executions
+        if not sections:
+            return []
+        return sections
 
     async def get_executions_by_doc_id(self, document_id: str) -> list:
         """
@@ -351,3 +371,19 @@ class ExecutionService:
         if not execution:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution
+    
+    async def update_status(self, execution_id: str, status: Status, status_message: str, user_instructions: str = None) -> Execution:
+        """
+        Update the status of an execution.
+        """
+        execution = await self.execution_repo.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+        
+        execution.status = status
+        execution.status_message = status_message
+        if user_instructions is not None:
+            execution.user_instructions = user_instructions
+        
+        updated_execution = await self.execution_repo.update(execution)
+        return updated_execution

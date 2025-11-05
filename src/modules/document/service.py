@@ -26,6 +26,15 @@ class DocumentService:
             raise ValueError(f"Document with ID {document_id} not found.")
         return document
     
+    async def get_document(self, document_id: str)-> Document:
+        """
+        Retrieve a document by its ID.
+        """
+        document = await self.document_repo.get_document(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+        return document
+    
     async def delete_document(self, document_id: str):
         """
         Delete a document by its ID.
@@ -298,4 +307,11 @@ class DocumentService:
         
         await self.document_repo.delete_dependency(dependency)
         return {"message": "Dependency removed successfully."}
+    
+    async def get_document_context(self, document_id: str):
+        """
+        Retrieve the context associated with a document.
+        """
+        context = await self.document_repo.get_document_context(document_id)
+        return context
 

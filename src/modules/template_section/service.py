@@ -16,12 +16,13 @@ class TemplateSectionService:
         template = await self.template_section_repo.check_if_template_exists(template_id)
         if not template:
             raise ValueError(f"Template with ID {template_id} not found.")
+        print(template)
         
         check_name = await self.template_section_repo.get_by_name(name, template_id)
         if check_name:
             raise ValueError(f"Template section with name {name} already exists in this template.")
         
-        last_order = template.template_sections[-1].order if template.template_sections else 0
+        last_order = await self.template_section_repo.get_last_order(template_id)
         order = last_order + 1
         
         new_section = TemplateSection(name=name, template_id=template_id,

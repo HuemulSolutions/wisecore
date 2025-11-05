@@ -9,7 +9,9 @@ from .prompts import (writer_prompt, past_section_prompt,
                       update_past_section_prompt)
 from .schemas import EvaluateUpdateSection
 from src.database.core import get_graph_session
-from src.database.models import Document, Section, Status
+from src.modules.document.models import Document
+from src.modules.section.models import Section
+from src.modules.execution.models import Status
 from rich import print
 
 # llm = get_llm("gpt-4.1")
@@ -104,6 +106,7 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
     """
     Write the section using the LLM.
     """
+    print("Executing section:", state['current_section'].name)
     writer({"section_id": str(state['current_section'].id)})
     section = state['current_section']
     prompt = writer_prompt.format(

@@ -1,10 +1,19 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import SectionExecRepo
+from .models import SectionExecution
 
 class SectionExecutionService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.section_exec_repo = SectionExecRepo(session)
+        
+        
+    async def add_section_execution(self, section_execution: SectionExecution) -> SectionExecution:
+        """
+        Add a new SectionExecution to the database.
+        """
+        created_section_execution = await self.section_exec_repo.add(section_execution)
+        return created_section_execution 
         
     async def get_by_id(self, section_execution_id: str):
         """

@@ -11,13 +11,12 @@ class ChatbotServices():
         Retrieve the content of an execution by its ID.
         """
         
-        execution_content = await ExecutionService(self.session).get_execution(execution_id)
-        section_execs = execution_content.section_executions
+        section_execs = await ExecutionService(self.session).get_sections_by_execution_id(execution_id)
         if not section_execs:
             raise ValueError(f"No section executions found for execution ID {execution_id}.")
         sorted_execs = sorted(
             section_execs,
-            key=lambda x: (x.section.order)
+            key=lambda x: (x.order)
         )
         content = "\n\n-------\n\n".join([i.custom_output if i.custom_output else i.output for i in sorted_execs])
         return content

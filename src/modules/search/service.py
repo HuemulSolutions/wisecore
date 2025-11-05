@@ -1,5 +1,4 @@
 from .repository import ChunkRepo
-from src.modules.execution.service import ExecutionService
 from .models import Chunk
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict
@@ -200,7 +199,7 @@ class ChunkService:
         Generate chunks for a specific execution.
         Returns the number of chunks created.
         """
-        execution = await ExecutionService(self.session).get_execution_for_chunking(execution_id)
+        execution = await self.chunk_repo.get_execution_to_chunking(execution_id)
         if execution.status.value != "completed":
             raise ValueError(f"Execution with ID {execution_id} is not completed.")
 
@@ -245,8 +244,6 @@ class ChunkService:
         Delete all chunks associated with a specific execution.
         Returns the number of chunks deleted.
         """
-        _ = await ExecutionService(self.session).get_execution_for_chunking(execution_id)
-        
         await self.chunk_repo.delete_chunks_by_execution_id(execution_id)
         
         
