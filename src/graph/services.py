@@ -1,28 +1,31 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database.repositories.document_repo import DocumentRepo
-from src.database.repositories.section_repo import SectionRepo
-from src.database.repositories.execution_repo import ExecutionRepo
-from src.database.repositories.sectionexec_repo import SectionExecRepo
-from src.database.models import Execution, Status, SectionExecution, Section, Document
+from src.modules.document.service import DocumentService
+from src.modules.section.service import SectionService
+from src.modules.execution.service import ExecutionService
+from src.modules.section_execution.service import SectionExecutionService
+from src.modules.llm.service import LLMService
+from src.modules.execution.models import Status, Execution
+from src.modules.section.models import Section
+from src.modules.document.models import Document
+from src.modules.section_execution.models import SectionExecution
 
 class GraphServices():
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.document_repo = DocumentRepo(session)
-        self.section_repo = SectionRepo(session)
-        self.execution_repo = ExecutionRepo(session)
-        self.section_exec_repo = SectionExecRepo(session)
+        self.document_service = DocumentService(session)
+        self.section_service = SectionService(session)
+        self.execution_service = ExecutionService(session)
+        self.llm_service = LLMService(session)
+        self.section_exec_service = SectionExecutionService(session)
         
         
     async def init_execution(self, document_id: str, execution_id: str, user_instructions: str = None)-> tuple[Document, list[Section]]:
         
-        await self.execution_repo.update_status(execution_id, Status.RUNNING, "Running execution", user_instructions)
+        await self.execution_service.update_status(execution_id, Status.RUNNING, "Running execution", user_instructions)
         
-        document = await self.document_repo.get_document(document_id)
-        if not document:
-            raise ValueError(f"Document with ID {document_id} not found.")
+        document = await self.document_service.get_document(document_id)
         
-        sections = await self.section_repo.get_sections_by_doc_id_graph(document_id)
+        sections = await self.section_service.get_document_sections_graph(document_id)
         if not sections:
             raise ValueError(f"No sections found for document with ID {document_id}.")
         return document, sections
@@ -31,69 +34,22 @@ class GraphServices():
         """
         Retrieve the LLM name used in the execution.
         """
-        execution = await self.execution_repo.get_execution(execution_id, with_model=True)
-        if not execution:
-            raise ValueError(f"Execution with ID {execution_id} not found.")
-        return execution.model.name
+        llm_name = await self.llm_service.get_llm_by_execution_id(execution_id)
+        return llm_name
     
     
     async def get_document_context(self, document_id: str) -> str:
         """
         Retrieve the document context and dependencies.
         """
-        context = await self.document_repo.get_document_context(document_id)
+        context = await self.document_service.get_document_context(document_id)
         return context
-        
-
-    # async def get_document_by_id(self, document_id: str) -> dict:
-    #     """
-    #     Get document by ID.
-    #     """
-    #     async with get_graph_session() as session:
-    #         document_repo = DocumentRepo(session)
-    #         document = await document_repo.get_by_id(document_id)
-    #         if not document:
-    #             raise ValueError(f"Document with id {document_id} not found.")
-    #         return document
-        
-    # async def get_section_by_id(self, section_id: str)-> Section:
-    #     async with get_graph_session() as session:
-    #         section_repo = SectionRepo(session)
-    #         document = await section_repo.get_by_id(section_id)
-    #         if not document:
-    #             raise ValueError(f"Section with id {section_id} not found.")
-    #         return document
-        
-    # async def get_sections_by_document_id(self, document_id: str) -> list:
-    #     """
-    #     Get sections by document ID.
-    #     """
-    #     async with get_graph_session() as session:
-    #         section_repo = SectionRepo(session)
-    #         return await section_repo.get_sections_by_doc_id(document_id)
-        
-    # async def create_execution(self, document_id: str) -> str:
-    #     async with get_graph_session() as session:
-    #         execution_repo = ExecutionRepo(session)
-    #         new_execution = Execution(
-    #             document_id=document_id,
-    #             status=Status.PENDING,
-    #             status_message="Initializing execution",
-    #         )
-    #         new_execution = await execution_repo.add(new_execution)
-    #         return new_execution.id
         
     async def update_execution(self, execution_id: str, status: Status, status_message: str) -> Execution:
         """
         Update the execution status.
         """
-        execution = await self.execution_repo.get_execution(execution_id)
-        if not execution:
-            raise ValueError(f"Execution with id {execution_id} not found.")
-        execution.status = status
-        execution.status_message = status_message
-        await self.execution_repo.add(execution)
-        return execution
+        return await self.execution_service.update_status(execution_id, status, status_message)
         
     async def save_section_execution(self, section_id: str, name: str, execution_id: str, output: str, prompt: str, order: int) -> SectionExecution:
         """
@@ -108,22 +64,8 @@ class GraphServices():
             prompt=prompt,
             order=order
         )
-        await self.section_exec_repo.add(new_section_execution)
+        await self.section_exec_service.add_section_execution(new_section_execution)
         return new_section_execution
-        
-    # async def update_section_execution(self, section_exec_id: str, output: str) -> SectionExecution:
-    #     """
-    #     Update the section execution in the database.
-    #     """
-    #     async with get_graph_session() as session:
-    #         section_exec_repo = SectionExecRepo(session)
-    #         section_execution = await section_exec_repo.get_by_id(section_exec_id)
-    #         if not section_execution:
-    #             raise ValueError(f"SectionExecution with id {section_exec_id} not found.")
-    #         section_execution.output = output
-    #         await section_exec_repo.add(section_execution)
-    #         return section_execution
-
 
 if __name__ == "__main__":
     import asyncio

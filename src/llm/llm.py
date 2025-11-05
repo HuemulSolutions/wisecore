@@ -10,6 +10,7 @@ def get_llm(llm: str)-> BaseChatModel:
         #     base_url=system_config.MODEL_GATEWAY_URL,
         #     api_key=system_config.MODEL_GATEWAY_APIKEY,
         # )
+        
         gpt = init_chat_model(
             model="azure_openai:gpt-4.1",
             azure_deployment="gpt-4.1",
