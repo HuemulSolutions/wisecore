@@ -1,25 +1,43 @@
-from src.database.base_repo import BaseRepository
-from .models import Folder
-from src.modules.document.models import Document
+from uuid import UUID
+from typing import Dict, Any, Optional, Union
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select
-from typing import Dict, Any, Optional
+
+from src.database.base_repo import BaseRepository
+from src.modules.document.models import Document
+
+from .models import Folder
 
 class FolderRepo(BaseRepository[Folder]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Folder)
         
         
-    async def get_by_name(self, name: str, parent_folder_id: Optional[str] = None) -> Folder:
+    async def get_by_name(
+        self,
+        name: str,
+        organization_id: Union[str, UUID],
+        parent_folder_id: Optional[str] = None,
+        exclude_id: Optional[str] = None,
+    ) -> Folder:
         """
-        Retrieve a folder by its name and optional parent_folder_id.
+        Retrieve a folder by its name, organization, and optional parent.
+        Allows excluding a specific folder ID (useful when renaming).
         """
-        query = select(self.model).where(self.model.name == name)
+        query = (
+            select(self.model)
+            .where(self.model.name == name)
+            .where(self.model.organization_id == organization_id)
+        )
         if parent_folder_id is None:
             query = query.where(self.model.parent_folder_id.is_(None))
         else:
             query = query.where(self.model.parent_folder_id == parent_folder_id)
+
+        if exclude_id:
+            query = query.where(self.model.id != exclude_id)
 
         result = await self.session.execute(query)
         return result.scalar_one_or_none()

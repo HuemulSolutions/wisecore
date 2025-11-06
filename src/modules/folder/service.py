@@ -18,18 +18,24 @@ class FolderService:
         """
         Create a new folder. If parent_folder_id is provided, the new folder will be created as a subfolder.
         """
-        existing_folder = await self.folder_repo.get_by_name(name, parent_folder_id)
-        if existing_folder:
-            raise ValueError(f"Folder with name '{name}' already exists in the specified location.")
-        
-        if organization_id is None:
+        resolved_org_id = organization_id
+        if resolved_org_id is None:
             parent_folder = await self.folder_repo.get_by_id(parent_folder_id)
             if parent_folder is None:
                 raise ValueError(f"Parent folder with ID '{parent_folder_id}' not found.")
-            organization_id = parent_folder.organization_id
+            resolved_org_id = parent_folder.organization_id
+
+        existing_folder = await self.folder_repo.get_by_name(
+            name,
+            resolved_org_id,
+            parent_folder_id=parent_folder_id,
+        )
+        if existing_folder:
+            raise ValueError(f"Folder with name '{name}' already exists in the specified location.")
+
         new_folder = self.folder_repo.model(
             name=name,
-            organization_id=organization_id,
+            organization_id=resolved_org_id,
             parent_folder_id=parent_folder_id
         )
         await self.folder_repo.add(new_folder)
@@ -45,4 +51,28 @@ class FolderService:
         
         await self.folder_repo.delete(folder)
         return True
+
+    async def update_folder_name(self, folder_id: str, new_name: str):
+        """
+        Update the name of a folder, ensuring uniqueness within the same parent and organization.
+        """
+        folder = await self.folder_repo.get_by_id(folder_id)
+        if not folder:
+            raise ValueError(f"Folder with ID '{folder_id}' not found.")
+
+        if folder.name == new_name:
+            return folder
+
+        existing_folder = await self.folder_repo.get_by_name(
+            new_name,
+            folder.organization_id,
+            parent_folder_id=folder.parent_folder_id,
+            exclude_id=folder_id,
+        )
+        if existing_folder:
+            raise ValueError(f"Folder with name '{new_name}' already exists in the specified location.")
+
+        folder.name = new_name
+        await self.folder_repo.update(folder)
+        return folder
         

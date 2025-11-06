@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from .service import FolderService
 from src.schemas import ResponseSchema
-from .schemas import CreateNewFolder
+from .schemas import CreateNewFolder, UpdateFolderName
 from src.utils import get_transaction_id, get_organization_id
 
 router = APIRouter(prefix="/folder")
@@ -86,3 +86,28 @@ async def delete_folder(folder_id: str, session: Session = Depends(get_session),
         )
 
 
+@router.put("/{folder_id}", response_model=ResponseSchema)
+async def update_folder(folder_id: str, request: UpdateFolderName,
+                        session: Session = Depends(get_session),
+                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Update the name of an existing folder, ensuring uniqueness within its parent and organization.
+    """
+    try:
+        service = FolderService(session)
+        updated_folder = await service.update_folder_name(folder_id, request.name)
+
+        return ResponseSchema(
+            data=jsonable_encoder(updated_folder),
+            message="Folder updated successfully",
+            transaction_id=transaction_id
+        )
+    except ValueError as ve:
+        status_code = 404 if "not found" in str(ve).lower() else 400
+        raise HTTPException(status_code=status_code, detail={"transaction_id": transaction_id, "error": str(ve)})
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the folder: {str(e)}"}
+        )

@@ -14,3 +14,10 @@ class CreateNewFolder(BaseModel):
         if self.organization_id is None and self.parent_folder_id is None:
             raise ValueError('Al menos uno de organization_id o parent_folder_id debe ser proporcionado')
         return self
+
+
+class UpdateFolderName(BaseModel):
+    """
+    Schema for updating a folder name.
+    """
+    name: str
