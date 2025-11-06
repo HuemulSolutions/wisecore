@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import DocumentRepo
 # from src.database.repositories.inner_depend_repo import InnerDependencyRepo
@@ -11,6 +12,7 @@ from src.modules.template.service import TemplateService
 from src.modules.section.service import SectionService
 from src.modules.organization.service import OrganizationService
 from src.modules.document_type.service import DocumentTypeService
+from src.modules.folder.service import FolderService
 
 class DocumentService:
     def __init__(self, session: AsyncSession):
@@ -65,6 +67,39 @@ class DocumentService:
         
         updated_document = await self.document_repo.update(document)
         return updated_document
+
+    async def move_document(self, document_id: str, destination_folder_id: str = None):
+        """
+        Move a document to another folder or root if destination_folder_id is None.
+        Ensures no duplicate name exists in the target location.
+        """
+        document = await self.document_repo.get_document(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} not found.")
+
+        folder_uuid = None
+        if destination_folder_id:
+            try:
+                folder_uuid = UUID(destination_folder_id)
+            except ValueError as exc:
+                raise ValueError(f"Invalid folder ID '{destination_folder_id}'.") from exc
+
+            folder_service = FolderService(self.session)
+            destination_folder = await folder_service.folder_repo.get_by_id(folder_uuid)
+            if not destination_folder:
+                raise ValueError(f"Folder with ID {destination_folder_id} not found.")
+        existing_document = await self.document_repo.get_by_name_in_folder(
+            document.name,
+            document.organization_id,
+            folder_uuid,
+            exclude_id=document.id,
+        )
+        if existing_document:
+            raise ValueError(f"Document with name {document.name} already exists in the destination folder.")
+
+        document.folder_id = folder_uuid
+        await self.document_repo.update(document)
+        return document
     
     async def get_all_documents(self, organization_id: str = None, document_type_id: str = None):
         """
@@ -314,4 +349,3 @@ class DocumentService:
         """
         context = await self.document_repo.get_document_context(document_id)
         return context
-

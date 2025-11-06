@@ -36,3 +36,10 @@ class UpdateDocument(BaseModel):
     """
     name: Optional[str] = None
     description: Optional[str] = None
+
+
+class MoveDocument(BaseModel):
+    """
+    Schema for moving a document to another folder.
+    """
+    folder_id: Optional[str] = None

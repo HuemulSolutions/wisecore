@@ -1,3 +1,4 @@
+from typing import Optional
 from src.database.base_repo import BaseRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import Document, Dependency
@@ -48,6 +49,34 @@ class DocumentRepo(BaseRepository[Document]):
         Retrieve a document by its name.
         """
         query = select(self.model).where(self.model.name == name)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_by_name_in_folder(
+        self,
+        name: str,
+        organization_id: UUID,
+        folder_id: Optional[UUID],
+        exclude_id: Optional[UUID] = None,
+    ) -> Document:
+        """
+        Retrieve a document by name scoped to an organization and folder.
+        Optionally exclude a specific document (useful when updating).
+        """
+        query = (
+            select(self.model)
+            .where(self.model.name == name)
+            .where(self.model.organization_id == organization_id)
+        )
+
+        if folder_id is None:
+            query = query.where(self.model.folder_id.is_(None))
+        else:
+            query = query.where(self.model.folder_id == folder_id)
+
+        if exclude_id:
+            query = query.where(self.model.id != exclude_id)
+
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
     

@@ -21,3 +21,10 @@ class UpdateFolderName(BaseModel):
     Schema for updating a folder name.
     """
     name: str
+
+
+class MoveFolder(BaseModel):
+    """
+    Schema for moving a folder to another folder or the root.
+    """
+    parent_folder_id: Optional[str] = None

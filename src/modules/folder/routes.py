@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from .service import FolderService
 from src.schemas import ResponseSchema
-from .schemas import CreateNewFolder, UpdateFolderName
+from .schemas import CreateNewFolder, UpdateFolderName, MoveFolder
 from src.utils import get_transaction_id, get_organization_id
 
 router = APIRouter(prefix="/folder")
@@ -110,4 +110,33 @@ async def update_folder(folder_id: str, request: UpdateFolderName,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while updating the folder: {str(e)}"}
+        )
+
+
+@router.put("/{folder_id}/move", response_model=ResponseSchema)
+async def move_folder(folder_id: str, request: MoveFolder,
+                      session: Session = Depends(get_session),
+                      transaction_id: str = Depends(get_transaction_id)):
+    """
+    Move a folder to another folder or to the root (parent_folder_id=None).
+    """
+    try:
+        service = FolderService(session)
+        moved_folder = await service.move_folder(folder_id, request.parent_folder_id)
+
+        return ResponseSchema(
+            data=jsonable_encoder(moved_folder),
+            message="Folder moved successfully",
+            transaction_id=transaction_id
+        )
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id, "error": str(ve)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while moving the folder: {str(e)}"}
         )

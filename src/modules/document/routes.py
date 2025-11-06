@@ -7,7 +7,7 @@ from src.modules.execution.service import ExecutionService
 from src.utils import get_transaction_id, get_organization_id
 from src.schemas import ResponseSchema
 from .schemas import (CreateDocumentLibrary, CreateDocumentDependency,
-                      UpdateDocument)
+                      UpdateDocument, MoveDocument)
 
 router = APIRouter(prefix="/documents")
 
@@ -190,6 +190,38 @@ async def update_document(document_id: str,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while updating the document: {str(e)}"}
+        )
+
+
+@router.put("/{document_id}/move")
+async def move_document(document_id: str,
+                        request: MoveDocument,
+                        session: Session = Depends(get_session),
+                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Move a document to another folder or to the root (folder_id=None).
+    """
+    document_service = DocumentService(session)
+    try:
+        moved_document = await document_service.move_document(
+            document_id=document_id,
+            destination_folder_id=request.folder_id
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(moved_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while moving the document: {str(e)}"}
         )
 
         
