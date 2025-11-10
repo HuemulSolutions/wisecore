@@ -20,6 +20,7 @@ from src.modules.chatbot.routes import router as chatbot_router
 from src.modules.generation.routes import router as generation_router
 from src.modules.context.routes import router as context_router
 from src.modules.docx_template.routes import router as docx_template_router
+from src.modules.job.routes import router as job_router
 
 from src.database import load_models
 from contextlib import asynccontextmanager
@@ -63,6 +64,7 @@ app.include_router(search_router, prefix="/api/v1", tags=["Search"])
 app.include_router(doc_type_router, prefix="/api/v1", tags=["Document Types"])
 app.include_router(folder_router, prefix="/api/v1", tags=["Folders"])
 app.include_router(section_execution_router, prefix="/api/v1", tags=["Section Executions"])
+app.include_router(job_router, prefix="/api/v1", tags=["Jobs"])
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -83,5 +85,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
-
 

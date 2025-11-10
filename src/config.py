@@ -19,6 +19,7 @@ class Config:
     DEFAULT_LLM: str = os.getenv("DEFAULT_LLM", "gpt-4.1")
     MODEL_GATEWAY_URL: str = os.getenv("MODEL_GATEWAY_URL")
     MODEL_GATEWAY_APIKEY: str = os.getenv("MODEL_GATEWAY_APIKEY")
+    JOB_WORKER_COUNT: int = int(os.getenv("JOB_WORKER_COUNT", "1"))
 
     def __post_init__(self):
         """Validate that all environment variables are loaded correctly."""

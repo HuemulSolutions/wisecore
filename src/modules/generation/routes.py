@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from src.graph.stream import stream_graph
+from .graph.stream import stream_graph
 from .service import (fix_section_service, redact_section_prompt_service)
 from .schemas import GenerateDocument, FixSection, RedactSectionPrompt
 
