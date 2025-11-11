@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.config import system_config
-from src.worker import run_workers
+from src.worker.worker import run_workers
 
 
 @asynccontextmanager

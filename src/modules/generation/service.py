@@ -2,6 +2,10 @@ from src.config import system_config
 from src.llm.llm import get_llm
 from langchain_core.messages import AIMessageChunk
 from pydantic import BaseModel
+from src.modules.job.service import JobService
+from src.modules.job.models import Job
+from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 def format_content(content: AIMessageChunk) -> str:
     """
@@ -105,3 +109,25 @@ Descripción: {document_description}
     )
     )
     return document.model_dump()
+
+
+class GenerationService:
+    
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def add_execution_graph_job(self, document_id: str, execution_id: str, user_instructions: str = None) -> Job:
+        """
+        Enqueue a job to run the generation graph for a document execution.
+        """
+        service = JobService(self.session)
+        payload = {
+            "document_id": document_id,
+            "execution_id": execution_id,
+            "user_instructions": user_instructions
+        }
+        job = await service.enqueue_job(
+            job_type="run_generation_graph",
+            payload=json.dumps(payload)
+        )
+        return job
