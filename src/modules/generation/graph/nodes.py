@@ -36,7 +36,7 @@ class BaseConfig(TypedDict):
     configurable: Config
 
 
-async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> State:
+async def entrypoint(state: State) -> State:
     print("Entrypoint")
     """
     Entry point for the graph. It retrieves the sections and creates an execution.
@@ -46,8 +46,7 @@ async def entrypoint(state: State, config: BaseConfig, writer: StreamWriter) -> 
         state['document'], state['sections'] = await (service.init_execution(state['document_id'],
                                                                       state['execution_id'], 
                                                                       state.get('execution_instructions')))
-        llm_name = await service.get_llm_name(state['execution_id'])
-        state['llm'] = get_llm(llm_name)
+        state["llm"] = await service.get_llm(state['execution_id'])
         state['document_context'] = await service.get_document_context(state['document_id'])
         # Inicializar diccionario para outputs de secciones
         state['section_outputs'] = {}
