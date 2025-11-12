@@ -52,6 +52,14 @@ class JobRepo(BaseRepository[Job]):
         await self.session.flush()
         return job
 
+    async def get_latest_jobs(self, limit: int = 10) -> list[Job]:
+        """
+        Fetch the latest jobs ordered by creation date (most recent first).
+        """
+        query = select(self.model).order_by(self.model.created_at.desc()).limit(limit)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
     def _pending_jobs_query(self, types: Optional[Iterable[str]] = None) -> Select:
         query = select(self.model).where(self.model.status == JobStatus.PENDING.value)
         if types:

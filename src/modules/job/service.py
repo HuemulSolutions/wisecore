@@ -50,3 +50,9 @@ class JobService:
         """
         job = await self.get_job(job_id)
         return await self.repo.mark_as_failed(job, error=error)
+
+    async def get_latest_jobs(self, limit: int = 10) -> list[Job]:
+        """
+        Get the latest jobs ordered by creation date.
+        """
+        return await self.repo.get_latest_jobs(limit=limit)

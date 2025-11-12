@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from src.config import system_config
 from src.worker.worker import run_workers
+from src.modules.job.routes import router as job_router
 
 
 @asynccontextmanager
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Job Worker", version="1.0.0", lifespan=lifespan)
+app.include_router(job_router)
 
 
 @app.get("/")
