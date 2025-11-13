@@ -6,7 +6,6 @@ from src.modules.llm.service import LLMService
 from src.modules.search.service import ChunkService
 from .models import Execution, Status
 from src.modules.section_execution.models import SectionExecution
-from src.config import system_config
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
@@ -102,10 +101,7 @@ class ExecutionService:
         Create a new execution for a document.
         """
         
-        llm_name = system_config.DEFAULT_LLM
-        llm = await LLMService(self.session).get_llm_by_name(llm_name)
-        if not llm:
-            raise ValueError(f"LLM with name {llm_name} not found.")      
+        llm = await LLMService(self.session).get_default_llm()
         
         new_execution = Execution(
             document_id=document_id,

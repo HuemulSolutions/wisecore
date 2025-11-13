@@ -30,7 +30,7 @@ class GraphServices():
             raise ValueError(f"No sections found for document with ID {document_id}.")
         return document, sections
     
-    async def get_llm_name(self, execution_id: str) -> str:
+    async def get_llm(self, execution_id: str) -> str:
         """
         Retrieve the LLM name used in the execution.
         """

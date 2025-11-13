@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
-from src.graph.stream import stream_graph
-from .service import (fix_section_service, redact_section_prompt_service)
+from .graph.execute import stream_graph
+from .service import (fix_section_service, redact_section_prompt_service, GenerationService)
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.database.core import get_session
 from .schemas import GenerateDocument, FixSection, RedactSectionPrompt
 
 
@@ -26,45 +28,26 @@ async def stream_generation(request: GenerateDocument):
         )
         
         
-
-# @router.post("/generate_document")
-# async def generate_document(request: GenerateDocument):
-#     try:
-#         # Crea la cola
-#         q: asyncio.Queue = asyncio.Queue(maxsize=100)
-        
-#         # Crea el worker desacoplado y mantén la referencia
-#         worker_task = asyncio.create_task(run_graph_worker(
-#             document_id=request.document_id,
-#             execution_id=request.execution_id,
-#             user_instructions=request.instructions,
-#             q=q
-#         ))
-        
-#         # Guarda la referencia para evitar garbage collection
-#         _active_tasks.add(worker_task)
-        
-#         # Añade callback para limpiar cuando termine
-#         def cleanup_task(task):
-#             _active_tasks.discard(task)
-        
-#         worker_task.add_done_callback(cleanup_task)
-
-#         # Devuelve un StreamingResponse que solo drena la cola
-#         return StreamingResponse(
-#             stream_queue(q),
-#             media_type="text/event-stream",
-#             headers={
-#                 "Cache-Control": "no-cache",
-#                 "Connection": "keep-alive",
-#                 "X-Accel-Buffering": "no",
-#             },
-#         )
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500,
-#             detail=f"An error occurred while generating the document: {str(e)}"
-#         )
+@router.post("/generate_worker")
+async def generate_document_worker(request: GenerateDocument,
+                                   session: AsyncSession = Depends(get_session)):
+    """
+    Generate a document using the worker and return the final result.
+    """
+    try:
+        generation_service = GenerationService(session)
+        result = await generation_service.add_execution_graph_job(request.document_id, request.execution_id, request.instructions)
+        if result is None:
+            raise HTTPException(
+                status_code=500,
+                detail="Document generation failed."
+            )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while generating the document: {str(e)}"
+        )
 
 @router.post("/generate_document")
 async def generate_document(request: GenerateDocument):
@@ -128,23 +111,3 @@ async def redact_section_prompt(request: RedactSectionPrompt):
             detail=f"An unexpected error occurred: {str(e)}"
         )
         
-        
-# @router.post("/chatbot")
-# async def chatbot_endpoint(request: Chatbot):
-#     """
-#     Chatbot interaction endpoint.
-#     """
-#     try:
-#         return StreamingResponse(
-#             stream(message=request.user_message, execution_id=request.execution_id, thread_id=request.thread_id),
-#             media_type="text/event-stream")
-#     except ValueError as e:
-#         raise HTTPException(
-#             status_code=400,
-#             detail=f"An error occurred in the chatbot interaction: {str(e)}"
-#         )
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500,
-#             detail=f"An unexpected error occurred: {str(e)}"
-#         )
