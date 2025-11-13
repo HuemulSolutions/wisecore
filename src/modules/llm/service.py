@@ -90,6 +90,7 @@ class LLMService:
             "provider": provider['name'],
             "key": provider['key'],
             "endpoint": provider['endpoint'],
+            "deployment": provider['deployment']
         }
         model = get_llm(model_info)
         return model

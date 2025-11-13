@@ -9,6 +9,7 @@ def get_llm(model_info: dict) -> BaseChatModel:
     model_name = model_info.get("name")
     api_key = model_info.get("key")
     endpoint = model_info.get("endpoint")
+    deployment = model_info.get("deployment")
 
     if provider == "azure_openai":
         llm = init_chat_model(
@@ -16,6 +17,7 @@ def get_llm(model_info: dict) -> BaseChatModel:
             model_provider="azure_openai",
             api_key=api_key,
             azure_endpoint=endpoint,
+            api_version=deployment
         )
     elif provider == "openai":
         llm = init_chat_model(
