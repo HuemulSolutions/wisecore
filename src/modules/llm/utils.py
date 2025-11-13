@@ -35,6 +35,7 @@ def get_llm(model_info: dict) -> BaseChatModel:
             model_provider="openai",
             api_key=api_key,
             base_url=endpoint,
+            max_tokens=8192
         )  
     else:
         raise ValueError(f"Unsupported provider: {provider}")
