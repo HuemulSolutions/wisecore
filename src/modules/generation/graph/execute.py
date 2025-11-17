@@ -72,7 +72,7 @@ async def execute_graph_worker(document_id: str, execution_id: str, user_instruc
             service = GraphServices(session)
             await service.update_execution(execution_id, Status.FAILED, str(e))
         print(f"Error in execute_graph_worker: {e}")
-        return f"Error: {str(e)}"
+        raise e
     return "Execution completed successfully"
     
 
