@@ -29,15 +29,15 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     
-    # Insertar registros iniciales
-    op.execute("""
-        INSERT INTO llm (id, name, created_at, updated_at) VALUES 
-        (gen_random_uuid(), 'gpt-4.1', NOW(), NOW()),
-        (gen_random_uuid(), 'claude-sonnet-4', NOW(), NOW()),
-        (gen_random_uuid(), 'llama-4-maverick', NOW(), NOW()),
-        (gen_random_uuid(), 'gpt-oss', NOW(), NOW()),
-        (gen_random_uuid(), 'granite-4', NOW(), NOW())
-    """)
+    # # Insertar registros iniciales
+    # op.execute("""
+    #     INSERT INTO llm (id, name, created_at, updated_at) VALUES 
+    #     (gen_random_uuid(), 'gpt-4.1', NOW(), NOW()),
+    #     (gen_random_uuid(), 'claude-sonnet-4', NOW(), NOW()),
+    #     (gen_random_uuid(), 'llama-4-maverick', NOW(), NOW()),
+    #     (gen_random_uuid(), 'gpt-oss', NOW(), NOW()),
+    #     (gen_random_uuid(), 'granite-4', NOW(), NOW())
+    # """)
     
     op.add_column('execution', sa.Column('model_id', sa.UUID(), nullable=True))
     op.create_foreign_key(None, 'execution', 'llm', ['model_id'], ['id'])
@@ -51,9 +51,9 @@ def downgrade() -> None:
     op.drop_column('execution', 'model_id')
     
     # Eliminar registros específicos antes de eliminar la tabla
-    op.execute("""
-        DELETE FROM llm WHERE name IN ('gpt-4.1', 'claude-sonnet-4', 'llama-4-maverick', 'gpt-oss', 'granite-4')
-    """)
+    # op.execute("""
+    #     DELETE FROM llm WHERE name IN ('gpt-4.1', 'claude-sonnet-4', 'llama-4-maverick', 'gpt-oss', 'granite-4')
+    # """)
     
     op.drop_table('llm')
     # ### end Alembic commands ###

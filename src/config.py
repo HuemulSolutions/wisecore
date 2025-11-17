@@ -5,6 +5,7 @@ from dataclasses import dataclass, fields
 # Load environment variables from .env file
 load_dotenv(dotenv_path=Path(".env.local"))
 # load_dotenv(dotenv_path=Path(".env.dev"))
+# load_dotenv(dotenv_path=Path(".env.test"))
 # load_dotenv(dotenv_path=Path(".env.prod"))
 
 
