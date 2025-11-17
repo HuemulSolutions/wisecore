@@ -5,7 +5,7 @@ from src.database.core import get_session
 from .service import LLMService
 from src.schemas import ResponseSchema
 from src.utils import get_transaction_id
-from .schemas import CreateLLM, SetDefaultLLM
+from .schemas import CreateLLM, SetDefaultLLM, UpdateLLM
 
 
 router = APIRouter(prefix="/llms")
@@ -67,6 +67,44 @@ async def create_llm(
             detail={
                 "transaction_id": transaction_id,
                 "error": f"An error occurred while creating the LLM: {str(e)}",
+            },
+        )
+
+
+@router.put("/{llm_id}")
+async def update_llm(
+    llm_id: str,
+    request: UpdateLLM,
+    session: Session = Depends(get_session),
+    transaction_id: str = Depends(get_transaction_id),
+):
+    """
+    Update fields of an existing LLM.
+    """
+    llm_service = LLMService(session)
+    update_data = request.model_dump(exclude_unset=True)
+    try:
+        llm = await llm_service.update_llm(
+            llm_id=llm_id,
+            name=update_data.get("name"),
+            internal_name=update_data.get("internal_name"),
+            provider_id=update_data.get("provider_id"),
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(llm),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id, "error": str(e)},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "transaction_id": transaction_id,
+                "error": f"An error occurred while updating the LLM: {str(e)}",
             },
         )
 

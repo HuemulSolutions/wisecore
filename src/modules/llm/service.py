@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import LLMRepo
 from .models import LLM
@@ -65,6 +67,57 @@ class LLMService:
         llm = await self.llm_repo.get_by_id(llm_id)
         return llm
 
+    async def update_llm(
+        self,
+        llm_id: str,
+        name: Optional[str] = None,
+        internal_name: Optional[str] = None,
+        provider_id: Optional[str] = None,
+    ) -> LLM:
+        """
+        Update mutable attributes of an existing LLM.
+        """
+        if not llm_id:
+            raise ValueError("LLM ID is required.")
+
+        llm = await self.llm_repo.get_by_id(llm_id)
+        if not llm:
+            raise ValueError(f"LLM with id {llm_id} not found.")
+
+        if all(value is None for value in (name, internal_name, provider_id)):
+            raise ValueError("No data provided to update the LLM.")
+
+        if name is not None:
+            sanitized_name = name.strip()
+            if not sanitized_name:
+                raise ValueError("LLM name cannot be empty.")
+
+            existing_by_name = await self.llm_repo.find_by_name(sanitized_name)
+            if existing_by_name and existing_by_name.id != llm.id:
+                raise ValueError(f"LLM with name {sanitized_name} already exists.")
+
+            llm.name = sanitized_name
+
+        if internal_name is not None:
+            sanitized_internal = internal_name.strip()
+            if not sanitized_internal:
+                raise ValueError("LLM internal_name cannot be empty.")
+
+            existing_by_internal = await self.llm_repo.find_by_internal_name(sanitized_internal)
+            if existing_by_internal and existing_by_internal.id != llm.id:
+                raise ValueError(f"LLM with internal_name {sanitized_internal} already exists.")
+
+            llm.internal_name = sanitized_internal
+
+        if provider_id is not None:
+            if not provider_id.strip():
+                raise ValueError("provider_id cannot be empty.")
+
+            provider = await self.provider_service.get_provider_by_id(provider_id)
+            llm.provider_id = str(provider.id)
+
+        return await self.llm_repo.update(llm)
+
     async def get_llm_by_execution_id(self, execution_id: str) -> BaseChatModel:
         """
         Retrieve an LLM associated with a specific execution ID.
@@ -90,6 +143,7 @@ class LLMService:
             "provider": provider['name'],
             "key": provider['key'],
             "endpoint": provider['endpoint'],
+            "deployment": provider['deployment']
         }
         model = get_llm(model_info)
         return model
@@ -119,4 +173,3 @@ class LLMService:
         
         # Set as default
         return await self.llm_repo.set_as_default(llm_id)
-

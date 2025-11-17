@@ -3,8 +3,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 from dataclasses import dataclass, fields
 # Load environment variables from .env file
-# load_dotenv()
-load_dotenv(dotenv_path=Path(".env.dev"))
+load_dotenv(dotenv_path=Path(".env.local"))
+# load_dotenv(dotenv_path=Path(".env.dev"))
+# load_dotenv(dotenv_path=Path(".env.test"))
 # load_dotenv(dotenv_path=Path(".env.prod"))
 
 
@@ -28,7 +29,8 @@ class Config:
     def __post_init__(self):
         """Validate that all required environment variables are loaded correctly."""
         optional_vars = {
-            "AZURE_KEY_VAULT_URL", "HASHICORP_VAULT_ADDR", "HASHICORP_VAULT_TOKEN"
+            "AZURE_KEY_VAULT_URL", "HASHICORP_VAULT_ADDR", "HASHICORP_VAULT_TOKEN",
+            "MODEL_GATEWAY_URL", "MODEL_GATEWAY_APIKEY"
         }
         
         for field in fields(self):
