@@ -147,13 +147,40 @@ async def run_workers(
             with suppress(NotImplementedError):
                 loop.add_signal_handler(sig, _handle_signal)
 
-    tasks = [asyncio.create_task(worker_loop(f"{idx+1}", event)) for idx in range(count)]
+    supervisor_logger = logging.getLogger("job-worker.supervisor")
+    worker_tasks: set[asyncio.Task[None]] = set()
+
+    def _start_worker(worker_id: str) -> None:
+        task = asyncio.create_task(worker_loop(worker_id, event))
+        worker_tasks.add(task)
+
+        def _on_done(completed: asyncio.Task[None], *, wid: str = worker_id) -> None:
+            worker_tasks.discard(completed)
+            if event.is_set():
+                return
+
+            if completed.cancelled():
+                supervisor_logger.warning("Worker %s was cancelled unexpectedly, restarting.", wid)
+            else:
+                exc = completed.exception()
+                if exc:
+                    supervisor_logger.error("Worker %s crashed: %s. Restarting.", wid, exc)
+                else:
+                    supervisor_logger.error("Worker %s stopped unexpectedly without error. Restarting.", wid)
+
+            _start_worker(wid)
+
+        task.add_done_callback(_on_done)
+
+    for idx in range(count):
+        _start_worker(f"{idx+1}")
+
     wait_task = asyncio.create_task(event.wait())
     try:
         await wait_task
     finally:
         event.set()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(*list(worker_tasks), return_exceptions=True)
 
 
 def parse_args() -> argparse.Namespace:

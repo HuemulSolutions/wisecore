@@ -51,6 +51,13 @@ class JobService:
         job = await self.get_job(job_id)
         return await self.repo.mark_as_failed(job, error=error)
 
+    async def fail_running_jobs(self, *, reason: Optional[str] = None) -> int:
+        """
+        Mark every job currently running as failed.
+        Returns the number of jobs updated so callers can track the cleanup work.
+        """
+        return await self.repo.mark_running_jobs_as_failed(reason=reason)
+
     async def get_latest_jobs(self, limit: int = 10) -> list[Job]:
         """
         Get the latest jobs ordered by creation date.

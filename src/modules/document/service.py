@@ -140,9 +140,6 @@ class DocumentService:
             if not await document_type_service.check_if_document_type_exists(document_type_id):
                 raise ValueError(f"Document type with ID {document_type_id} not found.")
         
-        if await self.document_repo.get_by_name(name):
-            raise ValueError(f"Document with name {name} already exists.")
-        
         new_document = Document(name=name, description=description,
                                 organization_id=organization_id,
                                 document_type_id=document_type_id,

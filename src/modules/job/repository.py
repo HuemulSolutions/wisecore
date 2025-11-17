@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.sql import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,6 +51,19 @@ class JobRepo(BaseRepository[Job]):
         job.result = error
         await self.session.flush()
         return job
+
+    async def mark_running_jobs_as_failed(self, *, reason: Optional[str] = None) -> int:
+        """
+        Mark all jobs that are currently in running status as failed.
+        Returns the number of rows affected so callers can log the outcome.
+        """
+        query = (
+            update(self.model)
+            .where(self.model.status == JobStatus.RUNNING.value)
+            .values(status=JobStatus.FAILED.value, result=reason)
+        )
+        result = await self.session.execute(query)
+        return result.rowcount or 0
 
     async def get_latest_jobs(self, limit: int = 10) -> list[Job]:
         """
