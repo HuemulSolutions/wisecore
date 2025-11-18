@@ -173,3 +173,16 @@ class LLMService:
         
         # Set as default
         return await self.llm_repo.set_as_default(llm_id)
+
+    async def delete_llm(self, llm_id: str) -> None:
+        """
+        Delete an LLM by its ID.
+        """
+        if not llm_id:
+            raise ValueError("LLM ID is required.")
+
+        llm = await self.llm_repo.get_by_id(llm_id)
+        if not llm:
+            raise ValueError(f"LLM with id {llm_id} not found.")
+
+        await self.llm_repo.delete(llm)

@@ -168,3 +168,34 @@ async def get_default_llm(
                 "error": f"An error occurred while retrieving default LLM: {str(e)}",
             },
         )
+
+
+@router.delete("/{llm_id}")
+async def delete_llm(
+    llm_id: str,
+    session: Session = Depends(get_session),
+    transaction_id: str = Depends(get_transaction_id),
+):
+    """
+    Delete an existing LLM.
+    """
+    llm_service = LLMService(session)
+    try:
+        await llm_service.delete_llm(llm_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data={"message": "LLM deleted successfully"},
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id, "error": str(e)},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "transaction_id": transaction_id,
+                "error": f"An error occurred while deleting the LLM: {str(e)}",
+            },
+        )
