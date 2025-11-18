@@ -33,9 +33,9 @@ class TemplateService:
         """
         Create a new template.
         """
-        template = await self.template_repo.get_by_name(name, organization_id=organization_id)
-        if template:
-            raise ValueError(f"Template with name {name} already exists.")
+        # template = await self.template_repo.get_by_name(name, organization_id=organization_id)
+        # if template:
+        #     raise ValueError(f"Template with name {name} already exists.")
         
         if not await OrganizationService(self.session).check_organization_exists(organization_id):
             raise ValueError(f"Organization with ID {organization_id} not found.")

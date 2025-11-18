@@ -12,7 +12,7 @@ SUPPORTED_PROVIDERS = {
         {"display": "Azure OpenAI", 
          "api_key": True,
          "endpoint": True,
-         "deployment": False},
+         "deployment": True},
     "openai": 
         {"display": "OpenAI",
          "api_key": True,
