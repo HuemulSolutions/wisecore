@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import os
 from pathlib import Path
 from typing import AsyncGenerator
@@ -11,7 +10,7 @@ from alembic import command
 from alembic.config import Config as AlembicConfig
 from asgi_lifespan import LifespanManager
 from dotenv import load_dotenv
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
@@ -65,24 +64,13 @@ def apply_migrations(alembic_config: AlembicConfig):
     command.downgrade(alembic_config, "base")
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """
-    Provide a single event loop for the entire test session so that
-    session-scoped async fixtures (like the engine) share it safely.
-    """
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
-async def async_engine(event_loop) -> AsyncGenerator[AsyncEngine, None]:
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def async_engine() -> AsyncGenerator[AsyncEngine, None]:
     yield engine
     await engine.dispose()
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, loop_scope="session")
 async def clean_database(async_engine: AsyncEngine, apply_migrations):
     """
     Truncate every domain table before and after each test to guarantee isolation.
@@ -92,7 +80,7 @@ async def clean_database(async_engine: AsyncEngine, apply_migrations):
     await _truncate_all_tables(async_engine)
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="session")
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with session_factory() as session:
         try:
@@ -103,8 +91,12 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="session")
 async def client() -> AsyncGenerator[AsyncClient, None]:
     async with LifespanManager(app):
-        async with AsyncClient(app=app, base_url="http://testserver") as test_client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as test_client:
             yield test_client

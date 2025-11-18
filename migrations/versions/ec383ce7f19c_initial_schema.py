@@ -121,4 +121,7 @@ def downgrade() -> None:
     op.drop_table('template_section')
     op.drop_table('document')
     op.drop_table('template')
+    
+    # Drop the enum type
+    op.execute("DROP TYPE IF EXISTS status_enum")
     # ### end Alembic commands ###

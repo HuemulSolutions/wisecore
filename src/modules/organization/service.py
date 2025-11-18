@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import OrganizationRepo
 from .models import Organization
+from uuid import UUID
 
 class OrganizationService:
     def __init__(self, session: AsyncSession):
@@ -37,5 +38,11 @@ class OrganizationService:
         """
         Check if an organization exists by its ID.
         """
+        if organization_id is None:
+            raise ValueError("Invalid organization ID format.")
+        try:
+            organization_id = UUID(organization_id)
+        except ValueError:
+            raise ValueError("Invalid organization ID format.")
         organization = await self.organization_repo.get_by_id(organization_id)
         return organization is not None
