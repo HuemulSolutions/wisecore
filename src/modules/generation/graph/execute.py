@@ -53,14 +53,17 @@ async def stream_graph(document_id: str, execution_id: str, user_instructions: s
         return
     
     
-async def execute_graph_worker(document_id: str, execution_id: str, user_instructions: str = None):
+async def execute_graph_worker(document_id: str, execution_id: str, user_instructions: str = None, 
+                               start_section_id: str = None, single_section_mode = False) -> str:
     """
     Execute the graph without streaming.
     """
     state = State(
         document_id=document_id,
         execution_id=execution_id,
-        execution_instructions=user_instructions
+        execution_instructions=user_instructions,
+        start_section_id=start_section_id,
+        single_section_mode=single_section_mode,
     )
     initial_config = {
             "recursion_limit": 60,

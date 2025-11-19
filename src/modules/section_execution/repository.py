@@ -34,3 +34,15 @@ class SectionExecRepo(BaseRepository[SectionExecution]):
             raise ValueError(f"No sections found for execution with id {execution_id}.")
         return section_execution
     
+    async def get_partial_sections_by_execution_id(self, execution_id: str) -> SectionExecution:
+        section_execution = await self.session.execute(
+            select(SectionExecution)
+            .options(
+                selectinload(SectionExecution.section),
+                selectinload(SectionExecution.execution)
+                .selectinload(SectionExecution.execution.property.mapper.class_.document)
+            )
+            .where(SectionExecution.execution_id == execution_id)
+        )
+        section_execution = section_execution.scalars().all()
+        return section_execution

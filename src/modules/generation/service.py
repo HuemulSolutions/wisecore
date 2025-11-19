@@ -116,7 +116,9 @@ class GenerationService:
     def __init__(self, session: AsyncSession):
         self.session = session
     
-    async def add_execution_graph_job(self, document_id: str, execution_id: str, user_instructions: str = None) -> Job:
+    async def add_execution_graph_job(self, document_id: str, execution_id: str, 
+                                      user_instructions: str = None, start_section_id: str = None,
+                                      single_section_mode: bool = False) -> Job:
         """
         Enqueue a job to run the generation graph for a document execution.
         """
@@ -124,7 +126,9 @@ class GenerationService:
         payload = {
             "document_id": document_id,
             "execution_id": execution_id,
-            "user_instructions": user_instructions
+            "user_instructions": user_instructions,
+            "start_section_id": start_section_id,
+            "single_section_mode": single_section_mode
         }
         job = await service.enqueue_job(
             job_type="run_generation_graph",

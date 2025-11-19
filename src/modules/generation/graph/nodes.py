@@ -19,6 +19,8 @@ from rich import print
 class State(TypedDict): 
     document_id: str
     execution_id: str
+    start_section_id: Optional[str]
+    single_section_mode: Optional[bool]
     execution_instructions: Optional[str]
     document: Document
     document_context: str
@@ -41,6 +43,7 @@ async def entrypoint(state: State) -> State:
     """
     Entry point for the graph. It retrieves the sections and creates an execution.
     """
+    
     async with get_graph_session() as session:
         service = GraphServices(session)
         state['document'], state['sections'] = await (service.init_execution(state['document_id'],
@@ -49,7 +52,10 @@ async def entrypoint(state: State) -> State:
         state["llm"] = await service.get_llm(state['execution_id'])
         state['document_context'] = await service.get_document_context(state['document_id'])
         # Inicializar diccionario para outputs de secciones
-        state['section_outputs'] = {}
+        if state.get('start_section_id'):
+            state['section_outputs'] = await service.get_partial_sections_execution(state['execution_id'])
+        else:
+            state['section_outputs'] = {}
     return state
 
 
@@ -68,12 +74,22 @@ def sort_sections(state: State, config: BaseConfig) -> State:
                 "done": False,
             })
         state['sorted_sections_ids'] = sorted_sections_list
+        
+        if state.get('start_section_id'):
+            print("Buscando sección de inicio:", state['start_section_id'])
+            # Marcar secciones anteriores a start_section_id como done
+            found_start = False
+            for section in state['sorted_sections_ids']:
+                if str(section['id']) == state['start_section_id']:
+                    found_start = True
+                    section['done'] = False
+                elif not found_start:
+                    section['done'] = True
     current_section_id = next((section['id'] for section in 
                                      state['sorted_sections_ids'] if not section['done']), 
                                     None)
     state['current_section'] = next((section for section in state['sections'] 
                                          if section.id == current_section_id), None)
-    print(state)
     return state
 
 
@@ -89,12 +105,13 @@ async def get_dependencies(state: State, config: BaseConfig) -> State:
     
     dependency_content = []
     for dependency in state['current_section'].dependencies:
-        print("Dependency:", dependency)
         print(state['sections'])
         dep_section = next(filter(lambda x: str(x.id) == dependency["id"], state['sections']), None)
         if dep_section:
             # Obtener output del diccionario del state
-            section_output = state['section_outputs'].get(str(dep_section.id), "")
+            section_output = state['section_outputs'].get(str(dep_section.id), None)
+            if not section_output:
+                raise ValueError(f"Output of dependency not found, make sure to execute sections in order of dependencies.")
             dependency_content.append(section_output)
         else:
             raise ValueError(f"Dependency with ID {dependency['id']} not found in sections.")
@@ -223,6 +240,8 @@ def should_continue(state: State, config: BaseConfig) -> bool:
     """
     Check if there are more sections to process.
     """
+    if state.get('single_section_mode', False):
+        return False
     if any(section['done'] == False for section in state['sorted_sections_ids']):
         return True
     else:

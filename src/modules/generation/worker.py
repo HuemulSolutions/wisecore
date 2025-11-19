@@ -37,8 +37,13 @@ async def run_generation_graph_handler(job: Job, session: Optional[AsyncSession]
         raise ValueError("Payload must contain 'execution_id' field.")
     
     user_instructions = payload.get("user_instructions", None)
+    
+    start_section_id = payload.get("start_section_id", None)
+    single_section_mode = payload.get("single_section_mode", False)
     result = await execute_graph_worker(document_id=document_id,
                                         execution_id=execution_id,
-                                        user_instructions=user_instructions)
+                                        user_instructions=user_instructions,
+                                        start_section_id=start_section_id,
+                                        single_section_mode=single_section_mode)
     return json.dumps(result)
     

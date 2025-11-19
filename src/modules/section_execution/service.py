@@ -47,3 +47,15 @@ class SectionExecutionService:
         
         await self.section_exec_repo.delete(section_execution)
         return True
+    
+    async def get_partial_section_execution_by_id(self, execution_id: str) -> SectionExecution:
+        """
+        Retrieve a partial section execution by its ID.
+        """
+        section_execution = await self.section_exec_repo.get_partial_sections_by_execution_id(execution_id)
+        if not section_execution:
+            return {}
+        sections_dict = {}
+        for sec_exec in section_execution:
+            sections_dict[sec_exec.section_id] = sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
+        return sections_dict

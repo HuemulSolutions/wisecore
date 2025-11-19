@@ -66,6 +66,16 @@ class GraphServices():
         )
         await self.section_exec_service.add_section_execution(new_section_execution)
         return new_section_execution
+    
+    async def get_partial_sections_execution(self, exec_id: str) -> dict:
+        """
+        Get the output of a section execution.
+        """
+        execution = await self.execution_service.check_execution_exists(exec_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {exec_id} does not exist.")
+        sections = await self.section_exec_service.get_partial_section_execution_by_id(exec_id)
+        return sections
 
 if __name__ == "__main__":
     import asyncio
