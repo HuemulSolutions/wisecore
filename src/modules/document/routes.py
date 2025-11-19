@@ -1,0 +1,405 @@
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy.ext.asyncio import AsyncSession as Session
+from src.database.core import get_session
+from .service import DocumentService
+from src.modules.execution.service import ExecutionService
+from src.utils import get_transaction_id, get_organization_id
+from src.schemas import ResponseSchema
+from .schemas import (CreateDocumentLibrary, CreateDocumentDependency,
+                      UpdateDocument, MoveDocument)
+
+router = APIRouter(prefix="/documents")
+
+@router.get("/content")
+async def get_document_content(document_id: str,
+                               execution_id: str = None, 
+                               session: Session = Depends(get_session), 
+                               transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve the content of a document by its ID.
+    """
+    document_service = DocumentService(session)
+    try:
+        info = await document_service.get_document_content(document_id, execution_id)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=info
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id, 
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id, 
+                    "error": f"An error occurred while retrieving the document content: {str(e)}"}
+        )
+
+@router.get("/{document_id}")
+async def get_document(document_id: str, 
+                       session: Session = Depends(get_session), 
+                       transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve a document by its ID.
+    """
+    docuemnt_service = DocumentService(session)
+    try:
+        document = await docuemnt_service.get_document_by_id(document_id)
+        response = ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(document)
+        )
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id, 
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id, 
+                    "error": f"An error occurred while retrieving the document: {str(e)}"}
+        )
+
+
+        
+@router.delete("/{document_id}")
+async def delete_document(document_id: str,
+                            session: Session = Depends(get_session),
+                            transaction_id: str = Depends(get_transaction_id)):
+        """
+        Delete a document by its ID.
+        """
+        document_service = DocumentService(session)
+        try:
+            await document_service.delete_document(document_id)
+            return ResponseSchema(
+                transaction_id=transaction_id,
+                data={"message": "Document deleted successfully"}
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=404,
+                detail={"transaction_id": transaction_id,
+                        "error": str(e)}
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                        "error": f"An error occurred while deleting the document: {str(e)}"}
+            )
+        
+@router.get("/")
+async def get_all_documents(document_type_id: str = None,
+                            orgId: str = Depends(get_organization_id),
+                            session: Session = Depends(get_session),
+                            transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all documents.
+    """
+    document_service = DocumentService(session)
+    try:
+        documents = await document_service.get_all_documents(orgId, document_type_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(documents)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving all documents: {str(e)}"}
+        )
+        
+@router.post("/")
+async def create_document_in_library(request: CreateDocumentLibrary,
+                                     orgId: str = Depends(get_organization_id),
+                                     session: Session = Depends(get_session),
+                                     transaction_id: str = Depends(get_transaction_id)):
+    """
+    Create a new document in the library.
+    """
+    document_service = DocumentService(session)
+    try:
+        new_document = await document_service.create_document(
+            name=request.name,
+            description=request.description,
+            organization_id=orgId,
+            document_type_id=request.document_type_id,
+            template_id=request.template_id,
+            folder_id=request.folder_id
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(new_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while creating the document: {str(e)}"}
+        )
+
+@router.put("/{document_id}")
+async def update_document(document_id: str,
+                          request: UpdateDocument,
+                          session: Session = Depends(get_session),
+                          transaction_id: str = Depends(get_transaction_id)):
+    """
+    Update a document's name and/or description.
+    """
+    document_service = DocumentService(session)
+    try:
+        updated_document = await document_service.update_document(
+            document_id=document_id,
+            name=request.name,
+            description=request.description
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(updated_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while updating the document: {str(e)}"}
+        )
+
+
+@router.put("/{document_id}/move")
+async def move_document(document_id: str,
+                        request: MoveDocument,
+                        session: Session = Depends(get_session),
+                        transaction_id: str = Depends(get_transaction_id)):
+    """
+    Move a document to another folder or to the root (folder_id=None).
+    """
+    document_service = DocumentService(session)
+    try:
+        moved_document = await document_service.move_document(
+            document_id=document_id,
+            destination_folder_id=request.folder_id
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(moved_document)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while moving the document: {str(e)}"}
+        )
+
+        
+@router.get("/{document_id}/sections")
+async def get_document_sections(document_id: str,
+                                session: Session = Depends(get_session),
+                                transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all sections for a specific document.
+    """
+    document_service = DocumentService(session)
+    try:
+        sections = await document_service.get_document_sections(document_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(sections)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving sections for document ID {document_id}: {str(e)}"}
+        )
+        
+@router.get("/{document_id}/dependencies")
+async def get_document_dependencies(document_id: str,
+                                    session: Session = Depends(get_session),
+                                    transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all dependencies for a specific document.
+    """
+    document_service = DocumentService(session)
+    try:
+        dependencies = await document_service.get_document_dependencies(document_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(dependencies)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving dependencies for document ID {document_id}: {str(e)}"}
+        )
+        
+@router.post("/{document_id}/dependencies")
+async def add_document_dependency(document_id: str,
+                                  document_dependency: CreateDocumentDependency,
+                                  session: Session = Depends(get_session),
+                                  transaction_id: str = Depends(get_transaction_id)):
+    """
+    Add a dependency relationship between two documents.
+    
+    Args:
+        document_id: The ID of the document that depends on another
+        depends_on_id: The ID of the document that is depended upon
+    """
+    document_service = DocumentService(session)
+    try:
+        dependency = await document_service.add_document_dependency(
+            document_id=document_id,
+            depends_on_document_id=document_dependency.depends_on_document_id,
+            section_id=document_dependency.section_id,
+            depends_on_section_id=document_dependency.depends_on_section_id
+        )
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(dependency)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while adding dependency: {str(e)}"}
+        )
+        
+@router.delete("/{document_id}/dependencies/{dependency_id}")
+async def delete_document_dependency(document_id: str,
+                                     dependency_id: str,
+                                     session: Session = Depends(get_session),
+                                     transaction_id: str = Depends(get_transaction_id)):
+    """
+    Delete a dependency relationship between two documents.
+    
+    Args:
+        document_id: The ID of the document that has the dependency
+        dependency_id: The ID of the dependency to be deleted
+    """
+    dependency_service = DocumentService(session)
+    try:
+        await dependency_service.delete_document_dependency(document_id, dependency_id)
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data={"message": "Dependency deleted successfully"}
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while deleting dependency: {str(e)}"}
+        )
+
+@router.get("/{document_id}/executions")
+async def get_executions_by_doc_id(document_id: str,
+                                   session: Session = Depends(get_session),
+                                   transaction_id: str = Depends(get_transaction_id)):
+    """
+    Retrieve all executions for a document.
+    """
+    try:
+        execution_service = ExecutionService(session)
+        executions = await execution_service.get_executions_by_doc_id(document_id)
+        
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(executions)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while retrieving executions: {str(e)}"}
+        )
+        
+@router.post("/{document_id}/generate")
+async def generate_document_structure_endpoint(document_id: str,
+                                                  session: Session = Depends(get_session),
+                                                  transaction_id: str = Depends(get_transaction_id)):
+     """
+     Auto-generate the structure of a document based on its template.
+     This will create sections as defined by the template associated with the document.
+     """
+     document_service = DocumentService(session)
+     try:
+          updated_document = await document_service.generate_document_structure(document_id)
+          return ResponseSchema(
+                transaction_id=transaction_id,
+                data=jsonable_encoder(updated_document)
+          )
+     except ValueError as e:
+          raise HTTPException(
+                status_code=400,
+                detail={"transaction_id": transaction_id,
+                      "error": str(e)}
+          )
+     except Exception as e:
+          raise HTTPException(
+                status_code=500,
+                detail={"transaction_id": transaction_id,
+                      "error": f"An error occurred while generating document structure: {str(e)}"}
+          )

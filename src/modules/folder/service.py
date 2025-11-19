@@ -1,0 +1,130 @@
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from .repository import FolderRepo
+
+class FolderService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.folder_repo = FolderRepo(session)
+        
+    async def get_folder_content(self, folder_id: str = None, organization_id: str = None):
+        """
+        Retrieve the contents of a folder by its ID.
+        If folder_id is None, retrieve root-level folders and documents.
+        Returns a dictionary with folder name and its contents (folders and documents in one list).
+        """
+        return await self.folder_repo.get_folder_content(folder_id, organization_id)
+    
+    async def create_folder(self, name: str, organization_id: str = None, parent_folder_id: str = None):
+        """
+        Create a new folder. If parent_folder_id is provided, the new folder will be created as a subfolder.
+        """
+        resolved_org_id = organization_id
+        if resolved_org_id is None:
+            parent_folder = await self.folder_repo.get_by_id(parent_folder_id)
+            if parent_folder is None:
+                raise ValueError(f"Parent folder with ID '{parent_folder_id}' not found.")
+            resolved_org_id = parent_folder.organization_id
+
+        existing_folder = await self.folder_repo.get_by_name(
+            name,
+            resolved_org_id,
+            parent_folder_id=parent_folder_id,
+        )
+        if existing_folder:
+            raise ValueError(f"Folder with name '{name}' already exists in the specified location.")
+
+        new_folder = self.folder_repo.model(
+            name=name,
+            organization_id=resolved_org_id,
+            parent_folder_id=parent_folder_id
+        )
+        await self.folder_repo.add(new_folder)
+        return new_folder
+    
+    async def delete_folder(self, folder_id: str):
+        """
+        Delete a folder by its ID. This will also delete all subfolders and documents within it.
+        """
+        folder = await self.folder_repo.get_by_id(folder_id)
+        if not folder:
+            raise ValueError(f"Folder with ID '{folder_id}' not found.")
+        
+        await self.folder_repo.delete(folder)
+        return True
+
+    async def move_folder(self, folder_id: str, destination_folder_id: str = None):
+        """
+        Move a folder to another folder or to the root if destination_folder_id is None.
+        """
+        folder = await self.folder_repo.get_by_id(folder_id)
+        if not folder:
+            raise ValueError(f"Folder with ID '{folder_id}' not found.")
+
+        if destination_folder_id == str(folder.id):
+            raise ValueError("A folder cannot be moved into itself.")
+
+        destination_uuid = None
+        destination_folder = None
+        if destination_folder_id:
+            try:
+                destination_uuid = UUID(destination_folder_id)
+            except ValueError as exc:
+                raise ValueError(f"Invalid folder ID '{destination_folder_id}'.") from exc
+
+            destination_folder = await self.folder_repo.get_by_id(destination_uuid)
+            if not destination_folder:
+                raise ValueError(f"Folder with ID '{destination_folder_id}' not found.")
+
+            if destination_folder.organization_id != folder.organization_id:
+                raise ValueError("Destination folder must belong to the same organization.")
+
+            ancestor = destination_folder
+            while ancestor is not None:
+                if ancestor.id == folder.id:
+                    raise ValueError("Cannot move a folder into one of its subfolders.")
+                if ancestor.parent_folder_id is None:
+                    break
+                ancestor = await self.folder_repo.get_by_id(str(ancestor.parent_folder_id))
+
+        existing_folder = await self.folder_repo.get_by_name(
+            folder.name,
+            folder.organization_id,
+            parent_folder_id=destination_uuid,
+            exclude_id=folder_id,
+        )
+        if existing_folder:
+            raise ValueError(f"Folder with name '{folder.name}' already exists in the destination folder.")
+
+        if folder.parent_folder_id == destination_uuid:
+            return folder
+
+        folder.parent_folder_id = destination_uuid
+        await self.folder_repo.update(folder)
+        return folder
+
+    async def update_folder_name(self, folder_id: str, new_name: str):
+        """
+        Update the name of a folder, ensuring uniqueness within the same parent and organization.
+        """
+        folder = await self.folder_repo.get_by_id(folder_id)
+        if not folder:
+            raise ValueError(f"Folder with ID '{folder_id}' not found.")
+
+        if folder.name == new_name:
+            return folder
+
+        existing_folder = await self.folder_repo.get_by_name(
+            new_name,
+            folder.organization_id,
+            parent_folder_id=folder.parent_folder_id,
+            exclude_id=folder_id,
+        )
+        if existing_folder:
+            raise ValueError(f"Folder with name '{new_name}' already exists in the specified location.")
+
+        folder.name = new_name
+        await self.folder_repo.update(folder)
+        return folder
+        
