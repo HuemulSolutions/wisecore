@@ -1,13 +1,10 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import DocumentRepo
-# from src.database.repositories.inner_depend_repo import InnerDependencyRepo
-# from src.database.repositories.dependency_repo import DependencyRepo
 from .models import Document
 from .models import Document, Dependency
-from src.modules.execution.models import Execution, Status
 from src.modules.section.models import Section
-from src.modules.generation.service import generate_document_structure
+from src.modules.generation.service import GenerationService
 from src.modules.template.service import TemplateService
 from src.modules.section.service import SectionService
 from src.modules.organization.service import OrganizationService
@@ -280,8 +277,8 @@ class DocumentService:
         if not document:
             raise ValueError(f"Document with ID {document_id} not found.")
         
-
-        structure = await generate_document_structure(document.name, document.description)
+        generation_service = GenerationService(self.session)
+        structure = await generation_service.generate_document_structure(document.name, document.description)
         
         document = await self.save_generated_structure(document_id, structure)
         return document

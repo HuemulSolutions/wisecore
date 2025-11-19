@@ -4,7 +4,7 @@ from src.modules.template_section.service import TemplateSectionService
 from src.modules.organization.service import OrganizationService
 from .models import Template
 from src.modules.template_section.models import TemplateSection
-from src.modules.generation.service import generate_document_structure
+from src.modules.generation.service import GenerationService
 
 class TemplateService:
     def __init__(self, session: AsyncSession):
@@ -168,7 +168,8 @@ class TemplateService:
         if len(template.template_sections) > 0:
             raise ValueError("Template already has sections. Cannot auto-generate structure.")
         
-        structure = await generate_document_structure(template.name, template.description)
+        generation_service = GenerationService(self.session)
+        structure = await generation_service.generate_document_structure(template.name, template.description)
         template = await self.save_generated_structure(template_id, structure)
         
         return template
