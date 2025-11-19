@@ -13,7 +13,35 @@ class SectionExecutionService:
         Add a new SectionExecution to the database.
         """
         created_section_execution = await self.section_exec_repo.add(section_execution)
-        return created_section_execution 
+        return created_section_execution
+    
+    async def save_or_update_section_execution(self, section_execution: SectionExecution) -> SectionExecution:
+        """
+        Save or update a SectionExecution in the database.
+        """
+        existing_section_execution = await self.section_exec_repo.get_by_execution_and_section(section_execution.execution_id, section_execution.section_id)
+        if existing_section_execution:
+            print("Updating existing section execution")
+            existing_section_execution.name = section_execution.name
+            existing_section_execution.output = section_execution.output
+            existing_section_execution.prompt = section_execution.prompt
+            existing_section_execution.order = section_execution.order
+            updated_section_execution = await self.section_exec_repo.update(existing_section_execution)
+            return updated_section_execution
+        else:
+            # Add new section execution
+            created_section_execution = await self.section_exec_repo.add(section_execution)
+            return created_section_execution
+        
+        
+    async def get_by_execution_and_section(self, execution_id: str, section_id: str):
+        """
+        Retrieve a section execution by execution ID and section ID.
+        """
+        section_execution = await self.section_exec_repo.get_by_execution_and_section(execution_id, section_id)
+        if not section_execution:
+            raise ValueError(f"Section execution not found for execution ID {execution_id} and section ID {section_id}")
+        return section_execution
         
     async def get_by_id(self, section_execution_id: str):
         """
@@ -57,5 +85,5 @@ class SectionExecutionService:
             return {}
         sections_dict = {}
         for sec_exec in section_execution:
-            sections_dict[sec_exec.section_id] = sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
+            sections_dict[str(sec_exec.section_id)] = sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
         return sections_dict

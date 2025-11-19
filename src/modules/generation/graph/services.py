@@ -64,7 +64,7 @@ class GraphServices():
             prompt=prompt,
             order=order
         )
-        await self.section_exec_service.add_section_execution(new_section_execution)
+        await self.section_exec_service.save_or_update_section_execution(new_section_execution)
         return new_section_execution
     
     async def get_partial_sections_execution(self, exec_id: str) -> dict:

@@ -46,3 +46,14 @@ class SectionExecRepo(BaseRepository[SectionExecution]):
         )
         section_execution = section_execution.scalars().all()
         return section_execution
+    
+    async def get_by_execution_and_section(self, execution_id: str, section_id: str) -> SectionExecution:
+        section_execution = await self.session.execute(
+            select(SectionExecution)
+            .where(
+                SectionExecution.execution_id == execution_id,
+                SectionExecution.section_id == section_id
+            )
+        )
+        section_execution = section_execution.scalars().first()
+        return section_execution
