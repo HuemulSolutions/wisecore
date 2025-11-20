@@ -30,6 +30,7 @@ def get_llm(model_info: dict) -> BaseChatModel:
             model=model_name,
             model_provider="anthropic",
             api_key=api_key,
+            max_tokens=8192
         )
     elif provider == "ibm_model_gateway":
         llm = init_chat_model(
