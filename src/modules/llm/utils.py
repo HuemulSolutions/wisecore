@@ -3,13 +3,13 @@ from langchain_core.language_models import BaseChatModel
 
 
 def get_llm(model_info: dict) -> BaseChatModel:
-    print("Getting LLM with model info:")
-    print(model_info)
     provider = model_info.get("provider")
     model_name = model_info.get("name")
     api_key = model_info.get("key")
     endpoint = model_info.get("endpoint")
     deployment = model_info.get("deployment")
+    
+    print(f"Getting LLM with model info: {model_name}, provider: {provider}")
 
     if provider == "azure_openai":
         llm = init_chat_model(

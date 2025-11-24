@@ -4,3 +4,4 @@
 __pycache__/
 local_testing/
 .DS_Store
+.local_secrets.json
