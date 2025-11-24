@@ -8,6 +8,8 @@ class GenerateDocument(BaseModel):
     document_id: str
     execution_id: str
     instructions: Optional[str] = None
+    start_section_id: Optional[str] = None
+    single_section_mode: Optional[bool] = False
     
 class FixSection(BaseModel):
     """

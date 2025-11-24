@@ -68,6 +68,13 @@ class ExecutionService:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution
     
+    async def check_execution_exists(self, execution_id: str) -> bool:
+        """
+        Check if an execution exists by its ID.
+        """
+        execution = await self.execution_repo.get_by_id(execution_id)
+        return execution is not None
+    
     async def get_execution_object(self, execution_id: str, with_model: bool = False):
         """
         Retrieve an execution object by its ID.

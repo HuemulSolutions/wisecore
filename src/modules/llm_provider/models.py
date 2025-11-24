@@ -10,4 +10,4 @@ class Provider(BaseModel):
     endpoint = Column(String, nullable=True)
     deployment = Column(String, nullable=True)
     
-    llms = relationship("LLM", back_populates="provider")
+    llms = relationship("LLM", back_populates="provider", cascade="all, delete-orphan")

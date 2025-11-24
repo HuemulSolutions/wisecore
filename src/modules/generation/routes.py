@@ -36,7 +36,9 @@ async def generate_document_worker(request: GenerateDocument,
     """
     try:
         generation_service = GenerationService(session)
-        result = await generation_service.add_execution_graph_job(request.document_id, request.execution_id, request.instructions)
+        result = await generation_service.add_execution_graph_job(request.document_id, request.execution_id, 
+                                                                  request.instructions, request.start_section_id,
+                                                                  request.single_section_mode)
         if result is None:
             raise HTTPException(
                 status_code=500,
