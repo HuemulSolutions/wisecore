@@ -126,6 +126,7 @@ Descripción: {document_description}
             prompt.format(
                 document_name=document_name,
                 document_description=document_description
-        )
+        ),
+            max_tokens=8000
         )
         return document.model_dump()
