@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from .graph.execute import stream_graph
-from .service import (fix_section_service, redact_section_prompt_service, GenerationService)
+from .service import (GenerationService)
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.core import get_session
 from .schemas import GenerateDocument, FixSection, RedactSectionPrompt
@@ -73,13 +73,15 @@ async def generate_document(request: GenerateDocument):
         
         
 @router.post("/fix_section")
-async def fix_section(request: FixSection):
+async def fix_section(request: FixSection, 
+                      session: AsyncSession = Depends(get_session)):
     """
     Fix a section in a document.
     """
     try:
+        service = GenerationService(session)
         return StreamingResponse(
-            fix_section_service(content=request.content, instructions=request.instructions),
+            service.fix_section_service(content=request.content, instructions=request.instructions),
             media_type="text/event-stream")
     except ValueError as e:
         raise HTTPException(
@@ -94,13 +96,15 @@ async def fix_section(request: FixSection):
         
         
 @router.post("/redact_section_prompt")
-async def redact_section_prompt(request: RedactSectionPrompt):
+async def redact_section_prompt(request: RedactSectionPrompt,
+                                session: AsyncSession = Depends(get_session)):
     """
     Redact or improve the prompt for a section.
     """
     try:
+        service = GenerationService(session)
         return StreamingResponse(
-            redact_section_prompt_service(name=request.name, content=request.content),
+            service.redact_section_prompt_service(name=request.name, content=request.content),
             media_type="text/event-stream")
     except ValueError as e:
         raise HTTPException(

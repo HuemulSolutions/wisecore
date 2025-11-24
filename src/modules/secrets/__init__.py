@@ -3,6 +3,7 @@ from typing import Optional
 from .base import SecretProvider
 from .azure import AzureKeyVaultProvider
 from .hashicorp import HashiCorpVaultProvider
+from .local import LocalFileSecretProvider
 from src.config import system_config
 
 @lru_cache(maxsize=1)
@@ -13,11 +14,13 @@ def get_provider() -> SecretProvider:
         return AzureKeyVaultProvider()
     if backend == "hashicorp":
         return HashiCorpVaultProvider()
+    if backend == "local":
+        return LocalFileSecretProvider()
 
-    raise ValueError(f"SECRET_BACKEND '{backend}' no soportado")
+    raise ValueError(f"SECRETS_PROVIDER '{backend}' no soportado")
 
 def get_secret(name: str) -> Optional[str]:
     return get_provider().get_secret(name)
 
-def set_secret(name: str, value: str) -> None:
-    get_provider().set_secret(name, value)
+def set_secret(value: str) -> str:
+    return get_provider().set_secret(value)

@@ -25,12 +25,13 @@ class Config:
     AZURE_KEY_VAULT_URL: str = os.getenv("AZURE_KEY_VAULT_URL")
     HASHICORP_VAULT_ADDR: str = os.getenv("HASHICORP_VAULT_ADDR")
     HASHICORP_VAULT_TOKEN: str = os.getenv("HASHICORP_VAULT_TOKEN")
+    LOCAL_SECRETS_FILE: str = os.getenv("LOCAL_SECRETS_FILE", ".local_secrets.json")
 
     def __post_init__(self):
         """Validate that all required environment variables are loaded correctly."""
         optional_vars = {
             "AZURE_KEY_VAULT_URL", "HASHICORP_VAULT_ADDR", "HASHICORP_VAULT_TOKEN",
-            "MODEL_GATEWAY_URL", "MODEL_GATEWAY_APIKEY"
+            "MODEL_GATEWAY_URL", "MODEL_GATEWAY_APIKEY", "LOCAL_SECRETS_FILE"
         }
         
         for field in fields(self):

@@ -8,7 +8,7 @@ class SecretProvider(ABC):
         ...
 
     @abstractmethod
-    def set_secret(self, name: str, value: str) -> None:
+    def set_secret(self, value: str) -> str:
         ...
 
     def generate_unique_name(self, prefix: str = "secret") -> str:
