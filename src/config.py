@@ -26,12 +26,22 @@ class Config:
     HASHICORP_VAULT_ADDR: str = os.getenv("HASHICORP_VAULT_ADDR")
     HASHICORP_VAULT_TOKEN: str = os.getenv("HASHICORP_VAULT_TOKEN")
     LOCAL_SECRETS_FILE: str = os.getenv("LOCAL_SECRETS_FILE", ".local_secrets.json")
+    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "azure")
+    EMAIL_AZURE_TENANT_ID: str = os.getenv("EMAIL_AZURE_TENANT_ID")
+    EMAIL_AZURE_CLIENT_ID: str = os.getenv("EMAIL_AZURE_CLIENT_ID")
+    EMAIL_AZURE_CLIENT_SECRET: str = os.getenv("EMAIL_AZURE_CLIENT_SECRET")
+    EMAIL_AZURE_SENDER: str = os.getenv("EMAIL_AZURE_SENDER")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
 
     def __post_init__(self):
         """Validate that all required environment variables are loaded correctly."""
         optional_vars = {
             "AZURE_KEY_VAULT_URL", "HASHICORP_VAULT_ADDR", "HASHICORP_VAULT_TOKEN",
-            "MODEL_GATEWAY_URL", "MODEL_GATEWAY_APIKEY", "LOCAL_SECRETS_FILE"
+            "MODEL_GATEWAY_URL", "MODEL_GATEWAY_APIKEY", "LOCAL_SECRETS_FILE",
+            "JWT_ALGORITHM", "JWT_EXPIRE_MINUTES", "EMAIL_AZURE_TENANT_ID",
+            "EMAIL_AZURE_CLIENT_ID", "EMAIL_AZURE_CLIENT_SECRET", "EMAIL_AZURE_SENDER"
         }
         
         for field in fields(self):
