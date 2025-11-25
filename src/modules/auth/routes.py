@@ -87,9 +87,6 @@ async def verify_login_code(
 ):
     auth_service = AuthService(session)
     try:
-        if request.purpose != CodePurpose.LOGIN:
-            raise ValueError("Para registro use el endpoint de creación de usuario.")
-
         user, token = await auth_service.verify_login_code(request.email, request.code)
         return ResponseSchema(
             transaction_id=transaction_id,
