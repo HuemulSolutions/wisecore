@@ -67,6 +67,7 @@ class SectionExecutionService:
             existing_section_execution.output = section_execution.output
             existing_section_execution.prompt = section_execution.prompt
             existing_section_execution.order = section_execution.order
+            existing_section_execution.custom_output = None
             updated_section_execution = await self.section_exec_repo.update(existing_section_execution)
             return updated_section_execution
         else:
