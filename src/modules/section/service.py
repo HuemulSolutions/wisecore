@@ -109,4 +109,11 @@ class SectionService:
             updated_sections.append(updated_section)
         
         return updated_sections
+    
+    async def check_section_exists(self, section_id: str, document_id: str) -> bool:
+        """
+        Check if a section exists for a given document.
+        """
+        section = await self.section_repo.get_by_id_and_document_id(section_id, document_id)
+        return section is not None
         

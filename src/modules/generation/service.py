@@ -2,6 +2,7 @@ from src.modules.llm.service import LLMService
 from langchain_core.messages import AIMessageChunk
 from pydantic import BaseModel
 from src.modules.job.service import JobService
+from src.modules.section.service import SectionService
 from src.modules.job.models import Job
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
@@ -20,6 +21,8 @@ class GenerationService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.llm_service = LLMService(session)
+        self.section_service = SectionService(session)
+        self.job_service = JobService(session)
     
     async def add_execution_graph_job(self, document_id: str, execution_id: str, 
                                       user_instructions: str = None, start_section_id: str = None,
@@ -27,7 +30,11 @@ class GenerationService:
         """
         Enqueue a job to run the generation graph for a document execution.
         """
-        service = JobService(self.session)
+        
+        if start_section_id:
+            section_exists = await self.section_service.check_section_exists(start_section_id, document_id)
+            if not section_exists:
+                raise ValueError(f"Section with ID {start_section_id} does not exist in document {document_id}.")
         payload = {
             "document_id": document_id,
             "execution_id": execution_id,
@@ -35,7 +42,7 @@ class GenerationService:
             "start_section_id": start_section_id,
             "single_section_mode": single_section_mode
         }
-        job = await service.enqueue_job(
+        job = await self.job_service.enqueue_job(
             job_type="run_generation_graph",
             payload=json.dumps(payload)
         )
