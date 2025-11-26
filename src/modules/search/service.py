@@ -6,11 +6,7 @@ import re
 import tiktoken
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from openai import AzureOpenAI
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from .embeddings import get_embedding_model
 
 # ---- Configuración de chunking ----
 DEFAULT_MAX_TOKENS = 500
@@ -143,19 +139,7 @@ class ChunkService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.chunk_repo = ChunkRepo(session)
-        self.azure_client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_version="2025-03-01-preview",
-        )
-
-    def create_embeddings(self, text: str) -> List[float]:
-        """Crear embeddings usando Azure OpenAI"""
-        embedding = self.azure_client.embeddings.create(
-            model="text-embedding-3-large",
-            input=text,
-        )
-        return embedding.data[0].embedding
+        self.model = get_embedding_model("azure_openai")
 
     async def _process_section_execution(self, section_execution) -> List[Chunk]:
         """Procesar una section execution para crear chunks con embeddings"""
@@ -177,7 +161,7 @@ class ChunkService:
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor(max_workers=5) as executor:
             embedding_tasks = [
-                loop.run_in_executor(executor, self.create_embeddings, chunk_data["text"])
+                loop.run_in_executor(executor, self.model.generate_embeddings, chunk_data["text"])
                 for chunk_data in chunks_data
             ]
             embeddings = await asyncio.gather(*embedding_tasks)
@@ -233,7 +217,7 @@ class ChunkService:
         """
         Search for chunks similar to the query using vector similarity.
         """
-        query_embedding = self.create_embeddings(query)
+        query_embedding = self.model.generate_embeddings(query)
         results = await self.chunk_repo.search_by_embedding(query_embedding, 
                                                             organization_id=organization_id, 
                                                             limit=top_k)
