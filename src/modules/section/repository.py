@@ -256,5 +256,14 @@ class SectionRepo(BaseRepository[Section]):
         document = result.scalar_one_or_none()
         return document is not None
     
+    async def get_by_id_and_document_id(self, section_id: str, document_id: str) -> Section | None:
+        result = await self.session.execute(
+            select(Section).where(
+                Section.id == section_id,
+                Section.document_id == document_id
+            )
+        )
+        return result.scalar_one_or_none()
+    
     
         

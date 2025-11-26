@@ -45,6 +45,11 @@ async def generate_document_worker(request: GenerateDocument,
                 detail="Document generation failed."
             )
         return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An error occurred while generating the document: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
