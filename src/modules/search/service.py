@@ -213,15 +213,48 @@ class ChunkService:
 
         return len(all_chunks)
     
-    async def search_chunks(self, query: str, organization_id: str, top_k: int = 5) -> List[Chunk]:
+    async def search_chunks(self, query: str, organization_id: str, top_k: int = 25) -> List[Dict]:
         """
         Search for chunks similar to the query using vector similarity.
+        Returns the best-matching chunk per section grouped by document.
         """
         query_embedding = self.model.generate_embeddings(query)
-        results = await self.chunk_repo.search_by_embedding(query_embedding, 
-                                                            organization_id=organization_id, 
-                                                            limit=top_k)
-        return results
+        chunks = await self.chunk_repo.search_by_embedding(
+            query_embedding,
+            organization_id=organization_id,
+            limit=top_k
+        )
+
+        documents: Dict[str, Dict] = {}
+        seen_sections = set()
+
+        for chunk in chunks:
+            section_exec = chunk.section_execution
+
+            # Results are ordered by similarity, so the first chunk per section is the most relevant.
+            if section_exec.id in seen_sections:
+                continue
+            seen_sections.add(section_exec.id)
+
+            execution = section_exec.execution
+            document = execution.document
+            doc_key = str(document.id)
+
+            if doc_key not in documents:
+                documents[doc_key] = {
+                    "document_id": document.id,
+                    "execution_id": execution.id,
+                    "document_name": document.name,
+                    "sections": []
+                }
+
+            documents[doc_key]["sections"].append({
+                "section_execution_id": section_exec.id,
+                "section_execution_name": section_exec.name,
+                "content": chunk.content
+            })
+
+        return list(documents.values())
     
     async def delete_chunks_by_execution(self, execution_id: str):
         """
@@ -232,4 +265,3 @@ class ChunkService:
         
         
         
-

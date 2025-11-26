@@ -37,7 +37,7 @@ class ChunkRepo(BaseRepository[Chunk]):
             await self.session.refresh(chunk)
         return chunks
         
-    async def search_by_embedding(self, embedded_query: List[float], organization_id: str, limit: int = 5) -> List[dict]:
+    async def search_by_embedding(self, embedded_query: List[float], organization_id: str, limit: int = 25) -> List[Chunk]:
         """
         Search for chunks by embedding similarity.
         """
@@ -61,19 +61,9 @@ class ChunkRepo(BaseRepository[Chunk]):
         result = await self.session.execute(query)
         chunks = result.scalars().unique().all()
         
-        # Return chunks with additional information
-        enriched_chunks = []
-        for chunk in chunks:
-            chunk_data = {
-                'content': chunk.content,
-                'execution_id': chunk.section_execution.execution_id,
-                'document_id': chunk.section_execution.execution.document_id,
-                'document_name': chunk.section_execution.execution.document.name,
-                'section_execution_name': chunk.section_execution.name
-            }
-            enriched_chunks.append(chunk_data)
+
         
-        return enriched_chunks
+        return chunks
     
     async def delete_chunks_by_execution_id(self, execution_id: str) -> int:
         """
