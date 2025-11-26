@@ -1,13 +1,49 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from .service import SectionExecutionService
-from .schemas import ModifySectionExecutionSchema
+from .schemas import ModifySectionExecutionSchema, AddSectionExecutionSchema
 from src.schemas import ResponseSchema
 from src.utils import get_transaction_id
 
 
 router = APIRouter(prefix="/section_executions")
+
+
+@router.post("/{execution_id}")
+async def add_section_execution(execution_id: str,
+                                request: AddSectionExecutionSchema,
+                                session: Session = Depends(get_session),
+                                transaction_id: str = Depends(get_transaction_id)):
+    """
+    Add a new section execution to an execution.
+    """
+    try:
+        section_execution_service = SectionExecutionService(session)
+        new_section_execution = await section_execution_service.add_section_execution_to_execution(
+            execution_id=execution_id,
+            name=request.name,
+            output=request.output,
+            after_from=request.after_from
+        )
+
+        return ResponseSchema(
+            transaction_id=transaction_id,
+            data=jsonable_encoder(new_section_execution)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={"transaction_id": transaction_id,
+                    "error": str(e)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"transaction_id": transaction_id,
+                    "error": f"An error occurred while adding the section execution: {str(e)}"}
+        )
 
 
 @router.delete("/{section_execution_id}")

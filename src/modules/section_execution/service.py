@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import SectionExecRepo
 from .models import SectionExecution
+from src.modules.execution.repository import ExecutionRepo
 
 class SectionExecutionService:
     def __init__(self, session: AsyncSession):
@@ -14,6 +15,46 @@ class SectionExecutionService:
         """
         created_section_execution = await self.section_exec_repo.add(section_execution)
         return created_section_execution
+
+    async def add_section_execution_to_execution(self, execution_id: str, name: str, output: str,
+                                                 after_from: str | None = None) -> SectionExecution:
+        """
+        Add a new SectionExecution for an execution, placing it after the specified section execution.
+        """
+        execution_repo = ExecutionRepo(self.session)
+        execution = await execution_repo.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution with ID {execution_id} not found.")
+
+        existing_sections = await self.section_exec_repo.get_execution_sections_ordered(execution_id)
+
+        insertion_index = 0
+        if after_from:
+            insertion_index = None
+            for idx, section_exec in enumerate(existing_sections):
+                if str(section_exec.id) == str(after_from):
+                    insertion_index = idx + 1
+                    break
+            if insertion_index is None:
+                raise ValueError(f"Section execution with ID {after_from} not found in execution {execution_id}.")
+
+        new_section_execution = SectionExecution(
+            name=name,
+            output=output,
+            section_id=None,
+            execution_id=execution_id,
+            order=0
+        )
+
+        reordered_sections = (
+            existing_sections[:insertion_index] + [new_section_execution] + existing_sections[insertion_index:]
+        )
+        for idx, section_exec in enumerate(reordered_sections, start=1):
+            section_exec.order = idx
+
+        await self.section_exec_repo.add(new_section_execution)
+        await self.session.flush()
+        return new_section_execution
     
     async def save_or_update_section_execution(self, section_execution: SectionExecution) -> SectionExecution:
         """
