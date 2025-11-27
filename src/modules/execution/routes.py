@@ -3,8 +3,8 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 from src.database.core import get_session
 from .service import ExecutionService
-from src.schemas import ResponseSchema, ModifySection
-from .schemas import UpdateLLM
+from src.schemas import ResponseSchema
+from .schemas import UpdateLLM, GenerateDocument
 from src.utils import get_transaction_id
 
 
@@ -36,6 +36,34 @@ async def get_execution_status(execution_id: str,
             status_code=500,
             detail={"transaction_id": transaction_id,
                     "error": f"An error occurred while retrieving the execution status: {str(e)}"}
+        )
+        
+@router.post("/generate")
+async def generate_document(request: GenerateDocument,
+                                   session: Session = Depends(get_session)):
+    """
+    Generate a document using the worker and return the final result.
+    """
+    try:
+        service = ExecutionService(session)
+        result = await service.add_execution_graph_job(request.document_id, request.execution_id, 
+                                                                  request.instructions, request.start_section_id,
+                                                                  request.single_section_mode)
+        if result is None:
+            raise HTTPException(
+                status_code=500,
+                detail="Document generation failed."
+            )
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An error occurred while generating the document: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while generating the document: {str(e)}"
         )
         
 @router.delete("/{execution_id}")
