@@ -17,6 +17,8 @@ class Config:
     DATABASE_URL: str = os.getenv("DATABASE_URL")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "LOCAL")
     ALEMBIC_DATABASE_URL: str = os.getenv("ALEMBIC_DATABASE_URL", "")
+    AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY")
+    AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT")
     DEFAULT_LLM: str = os.getenv("DEFAULT_LLM", "gpt-4.1")
     MODEL_GATEWAY_URL: str = os.getenv("MODEL_GATEWAY_URL")
     MODEL_GATEWAY_APIKEY: str = os.getenv("MODEL_GATEWAY_APIKEY")
@@ -42,7 +44,7 @@ class Config:
             "MODEL_GATEWAY_URL", "MODEL_GATEWAY_APIKEY", "LOCAL_SECRETS_FILE",
             "JWT_ALGORITHM", "JWT_EXPIRE_MINUTES", "EMAIL_AZURE_TENANT_ID",
             "EMAIL_AZURE_CLIENT_ID", "EMAIL_AZURE_CLIENT_SECRET", "EMAIL_AZURE_SENDER",
-            "JWT_SECRET_KEY"
+            "JWT_SECRET_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY"
         }
         
         for field in fields(self):

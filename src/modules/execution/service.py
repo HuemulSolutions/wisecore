@@ -2,6 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .repository import ExecutionRepo
 from src.modules.section_execution.service import SectionExecutionService
 from src.modules.docx_template.service import DocxTemplateService
+from src.modules.section.service import SectionService
+from src.modules.job.service import JobService
+from src.modules.job.models import Job
 from src.modules.llm.service import LLMService
 from src.modules.search.service import ChunkService
 from .models import Execution, Status
@@ -9,6 +12,7 @@ from src.modules.section_execution.models import SectionExecution
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
+import json
 from .utils import insertar_md_como_parrafos, rellenar_y_devolver_bytes
 
 
@@ -16,6 +20,8 @@ class ExecutionService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.execution_repo = ExecutionRepo(session)
+        self.job_service = JobService(session)
+        self.section_service = SectionService(session)
         
     
     @staticmethod
@@ -390,3 +396,30 @@ class ExecutionService:
         
         updated_execution = await self.execution_repo.update(execution)
         return updated_execution
+    
+    async def add_execution_graph_job(self, document_id: str, execution_id: str, 
+                                      user_instructions: str = None, start_section_id: str = None,
+                                      single_section_mode: bool = False) -> Job:
+        """
+        Enqueue a job to run the generation graph for a document execution.
+        """
+        
+        if start_section_id:
+            section_exists = await self.section_service.check_section_exists(start_section_id, document_id)
+            if not section_exists:
+                raise ValueError(f"Section with ID {start_section_id} does not exist in document {document_id}.")
+            
+            
+        _ = await self.update_status(execution_id, Status.PENDING, "Pending", user_instructions)
+        payload = {
+            "document_id": document_id,
+            "execution_id": execution_id,
+            "user_instructions": user_instructions,
+            "start_section_id": start_section_id,
+            "single_section_mode": single_section_mode
+        }
+        job = await self.job_service.enqueue_job(
+            job_type="run_generation_graph",
+            payload=json.dumps(payload)
+        )
+        return job
