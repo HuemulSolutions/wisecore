@@ -9,6 +9,7 @@ from src.modules.llm.service import LLMService
 from src.modules.search.service import ChunkService
 from .models import Execution, Status
 from src.modules.section_execution.models import SectionExecution
+from src.modules.section.models import Section
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
@@ -22,6 +23,8 @@ class ExecutionService:
         self.execution_repo = ExecutionRepo(session)
         self.job_service = JobService(session)
         self.section_service = SectionService(session)
+        self.llm_service = LLMService(session)
+        self.section_exec_service = SectionExecutionService(session)
         
     
     @staticmethod
@@ -90,6 +93,14 @@ class ExecutionService:
             raise ValueError(f"Execution with ID {execution_id} not found.")
         return execution
     
+    async def get_number_of_executions(self, document_id: str) -> int:
+        """
+        Get the number of executions for a specific document.
+        """
+        count = await self.execution_repo.count_executions_by_document_id(document_id)
+        return count
+        
+    
     async def get_sections_by_execution_id(self, execution_id: str) -> list[SectionExecution]:
         """
         Retrieve all sections associated with a specific execution.
@@ -109,21 +120,49 @@ class ExecutionService:
             return []
         return executions
     
-    async def create_execution(self, document_id: str):
+    async def create_section_execution_bulk(self, sections: list[Section], execution_id: str) -> list[SectionExecution]:
+        """
+        Create section executions in bulk for the given sections and execution ID.
+        """
+        print("Creating section executions in bulk...")
+        section_executions = []
+        for section in sections:
+            section_execution = SectionExecution(
+                name=section.name,
+                section_id=section.id,
+                execution_id=execution_id,
+                prompt=section.prompt,
+                order=section.order
+            )
+            section_executions.append(section_execution)
+        
+        created_section_executions = await self.section_exec_service.add_section_executions_bulk(section_executions)
+        print("Created", len(created_section_executions), "section executions.")
+        return created_section_executions
+    
+    async def create_execution(self, document_id: str, llm_id: str) -> Execution:
         """
         Create a new execution for a document.
         """
+        llm = await self.llm_service.check_llm_exists(llm_id)
+        if not llm:
+            raise ValueError(f"LLM with ID {llm_id} not found.")
         
-        llm = await LLMService(self.session).get_default_llm()
-        
+        number_of_executions = await self.get_number_of_executions(document_id)
         new_execution = Execution(
+            name=f"Version {number_of_executions + 1}",
             document_id=document_id,
             status=Status.PENDING,
-            model_id=llm.id
+            model_id=llm_id
             )
         execution = await self.execution_repo.add(new_execution)
         if not execution:
             raise ValueError(f"Failed to create execution for document ID {document_id}.")
+        
+        _ = await self.create_section_execution_bulk(
+            await self.section_service.get_document_sections_graph(document_id),
+            execution.id)
+        
         return execution
     
     async def get_execution_status(self, execution_id: str) -> str:
@@ -145,6 +184,41 @@ class ExecutionService:
         
         await self.execution_repo.delete(execution)
         return {"message": f"Execution with ID {execution_id} deleted successfully."}
+    
+    async def clone_execution(self, execution_id: str) -> Execution:
+        """
+        Clone a completed or approved execution along with its section executions.
+        """
+        execution = await self.execution_repo.get_execution_sections(execution_id)
+        if execution.status not in (Status.COMPLETED, Status.APPROVED):
+            raise ValueError("Only completed or approved executions can be cloned.")
+        
+        new_execution = Execution(
+            name=f"{execution.name} copy",
+            user_instruction=execution.user_instruction,
+            status=Status.COMPLETED,
+            status_message=execution.status_message,
+            document_id=execution.document_id,
+            model_id=execution.model_id,
+        )
+        new_execution = await self.execution_repo.add(new_execution)
+        
+        section_execution_service = SectionExecutionService(self.session)
+        for section_exec in sorted(execution.sections_executions, key=lambda se: se.order):
+            cloned_section_exec = SectionExecution(
+                name=section_exec.name,
+                user_instruction=section_exec.user_instruction,
+                prompt=section_exec.prompt,
+                order=section_exec.order,
+                output=section_exec.output,
+                custom_output=section_exec.custom_output,
+                is_locked=section_exec.is_locked,
+                section_id=section_exec.section_id,
+                execution_id=new_execution.id,
+            )
+            await section_execution_service.add_section_execution(cloned_section_exec)
+        
+        return new_execution
     
     async def update_llm(self, execution_id: str, llm_id: str):
         """
@@ -397,23 +471,39 @@ class ExecutionService:
         updated_execution = await self.execution_repo.update(execution)
         return updated_execution
     
-    async def add_execution_graph_job(self, document_id: str, execution_id: str, 
+    async def add_execution_graph_job(self, document_id: str, llm_id: str, execution_id: str = None,
                                       user_instructions: str = None, start_section_id: str = None,
                                       single_section_mode: bool = False) -> Job:
         """
         Enqueue a job to run the generation graph for a document execution.
         """
         
+        # Check if document exists
+        document = await self.execution_repo.check_if_document_exists(document_id)
+        if not document:
+            raise ValueError(f"Document with ID {document_id} does not exist.")
+        
+        # If start_section_id is provided, check if it exists in the document
         if start_section_id:
             section_exists = await self.section_service.check_section_exists(start_section_id, document_id)
             if not section_exists:
                 raise ValueError(f"Section with ID {start_section_id} does not exist in document {document_id}.")
+            
+        # If execution_id is not provided, create a new execution
+        if not execution_id:
+            execution = await self.create_execution(document_id, llm_id)
+            execution_id = str(execution.id)
+        else:
+            execution = await self.get_execution(execution_id)
+            if not execution:
+                raise ValueError(f"Execution with ID {execution_id} does not exist.")
             
             
         _ = await self.update_status(execution_id, Status.PENDING, "Pending", user_instructions)
         payload = {
             "document_id": document_id,
             "execution_id": execution_id,
+            "llm_id": llm_id,
             "user_instructions": user_instructions,
             "start_section_id": start_section_id,
             "single_section_mode": single_section_mode
@@ -422,4 +512,10 @@ class ExecutionService:
             job_type="run_generation_graph",
             payload=json.dumps(payload)
         )
-        return job
+        
+        execution_data = await self.get_execution(execution_id)
+        data = {
+            "execution": execution_data,
+            "job": job
+        }
+        return data

@@ -73,12 +73,83 @@ class AzureMailProvider(BaseMailProvider):
             **kwargs: Permite sobreescribir subject o body_html.
         """
         subject = kwargs.get("subject") or "Código de verificación"
-        body_html = kwargs.get("body_html") or (
-            "<p>Tu código de verificación es:</p>"
-            f"<h2>{verification_code}</h2>"
-            "<p>Introduce este código para continuar. "
-            "Si no solicitaste este acceso, puedes ignorar este correo.</p>"
-        )
+        body_html = kwargs.get("body_html") or f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{
+      font-family: 'Arial', sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }}
+    .container {{
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }}
+    .header {{
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }}
+    .header h2 {{
+      margin: 0;
+      font-size: 24px;
+      color: #1C2544;
+    }}
+    .content {{
+      text-align: center;
+    }}
+    .content p {{
+      margin: 20px 0;
+      line-height: 1.5;
+    }}
+    .code {{
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #1C2544;
+      background-color: #f2f2f2;
+      padding: 15px;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 20px 0;
+    }}
+    .footer {{
+      text-align: center;
+      margin-top: 30px;
+      font-size: 0.9em;
+      color: #777;
+    }}
+    .footer p {{
+      margin: 5px 0;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Huemul Solutions</h2>
+    </div>
+    <div class="content">
+      <p>Hola,</p>
+      <p>Usa el siguiente código para validar tu cuenta:</p>
+      <p class="code">{verification_code}</p>
+    </div>
+    <div class="footer">
+      <p>¡Saludos!</p>
+      <p>Equipo Huemul Solutions</p>
+    </div>
+  </div>
+</body>
+</html>"""
 
         try:
             token = self._get_azure_token()

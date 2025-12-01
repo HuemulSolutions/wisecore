@@ -19,6 +19,7 @@ from rich import print
 class State(TypedDict): 
     document_id: str
     execution_id: str
+    llm_id: str
     start_section_id: Optional[str]
     single_section_mode: Optional[bool]
     execution_instructions: Optional[str]
@@ -27,7 +28,6 @@ class State(TypedDict):
     current_section: Section
     sections: List[Section]
     sorted_sections_ids: List[dict]
-    should_update: List[dict]
     llm: BaseChatModel
     section_outputs: dict  # Diccionario para almacenar outputs de secciones
     
@@ -46,10 +46,14 @@ async def entrypoint(state: State) -> State:
     
     async with get_graph_session() as session:
         service = GraphServices(session)
+        # Only if executing all sections, update execution instructions
+        # if not state.get("start_section_id"):
+        #     state['document'], state['sections'] = await (service.init_execution(state['document_id'],
+        #                                                                 state['execution_id'], 
+        #                                                                 state.get('execution_instructions')))
         state['document'], state['sections'] = await (service.init_execution(state['document_id'],
-                                                                      state['execution_id'], 
-                                                                      state.get('execution_instructions')))
-        state["llm"] = await service.get_llm(state['execution_id'])
+                                                                        state['execution_id']))
+        state["llm"] = await service.get_llm(state['llm_id'])
         state['document_context'] = await service.get_document_context(state['document_id'])
         # Inicializar diccionario para outputs de secciones
         if state.get('start_section_id'):
@@ -134,7 +138,6 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
     )
     
     llm = state['llm']
-    print("Executing section:", section.name)
     response = await llm.ainvoke(prompt)
     
     # Inicializar diccionario si no existe
@@ -144,69 +147,6 @@ async def execute_section(state: State, config: BaseConfig, writer: StreamWriter
     # Guardar output en el diccionario del state
     state['section_outputs'][str(section.id)] = response.content
     return state
-
-
-# async def should_update_past_section(current_section: str, past_section: str) -> bool:
-#     """
-#     Check if the past section should be updated based on the current section.
-#     """
-#     prompt = past_section_prompt.format(
-#         past_section=past_section,
-#         current_section=current_section
-#     )
-#     response = await llm.with_structured_output(EvaluateUpdateSection).ainvoke(prompt)
-#     return response
-
-
-# async def eval_update_past_sections(state: State, config: BaseConfig) -> State:
-#     """
-#     Update the past sections with the current section output.
-#     """
-#     should_update_list = []
-#     for dependency in state['current_section']['dependencies']:
-#         if dependency['type'] == "section":
-#             should_update: EvaluateUpdateSection = await should_update_past_section(
-#                 current_section=state['current_section']['output'],
-#                 past_section=dependency['content']
-#                 )
-#             if should_update:
-#                 should_update_list.append(
-#                     {
-#                         "id": dependency['id'],
-#                         "content": dependency['content'],
-#                         "explanation": should_update.explanation
-#                         }
-#                     )
-#     state['should_update'] = should_update_list
-#     return state
-
-# def should_update(state: State, config: BaseConfig) -> bool:
-#     """
-#     Check if the past sections should be updated.
-#     """
-#     if len(state.get('should_update', [])) > 0:
-#         return True
-#     else:
-#         return False
-
-
-# async def update_past_sections(state: State, config: BaseConfig, writer: StreamWriter) -> State:
-#     """
-#     Update the past sections in the database.
-#     """
-#     for section in state['should_update']:
-#         writer({"data": {"section_id": section['id']}})
-#         prompt = update_past_section_prompt.format(
-#             past_section=section['content'],
-#             current_section=state['current_section']['output'],
-#             feedback=section['explanation']
-#         )
-#         response = await llm.ainvoke(prompt)
-#         _ = await graph_services.update_section_execution(
-#             section_exec_id=section['id'],
-#             output=response.content
-#         )
-#     return state
 
 
 async def save_section_execution(state: State, config: BaseConfig) -> State:

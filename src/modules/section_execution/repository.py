@@ -65,3 +65,10 @@ class SectionExecRepo(BaseRepository[SectionExecution]):
         )
         section_execution = section_execution.scalars().first()
         return section_execution
+
+    async def add_bulk(self, section_executions: list[SectionExecution]) -> list[SectionExecution]:
+        self.session.add_all(section_executions)
+        await self.session.flush()
+        for section_execution in section_executions:
+            await self.session.refresh(section_execution)
+        return section_executions
