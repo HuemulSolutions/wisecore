@@ -55,7 +55,7 @@ class ChunkRepo(BaseRepository[Chunk]):
             .where(distance <= DISTANCE)
             .where(Document.organization_id == organization_id)
             .order_by(distance)
-            .limit(limit)
+            # .limit(limit)
         )
         
         result = await self.session.execute(query)

@@ -129,3 +129,13 @@ class SectionExecutionService:
         for sec_exec in section_execution:
             sections_dict[str(sec_exec.section_id)] = sec_exec.custom_output if sec_exec.custom_output else sec_exec.output
         return sections_dict
+    
+    async def add_section_executions_bulk(self, section_executions: list[SectionExecution]) -> list[SectionExecution]:
+        """
+        Add multiple SectionExecutions to the database in bulk.
+        """
+        try:
+            created_section = await self.section_exec_repo.add_bulk(section_executions)
+        except Exception as e:
+            raise ValueError(f"Error adding section executions in bulk: {str(e)}")
+        return created_section

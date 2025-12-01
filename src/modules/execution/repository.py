@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 from .models import Execution, Status
+from src.modules.document.models import Document
 import asyncio
 
 class ExecutionRepo(BaseRepository[Execution]):
@@ -37,6 +38,7 @@ class ExecutionRepo(BaseRepository[Execution]):
         
         result_dict = {
             "id": execution.id,
+            "name": execution.name,
             "document_id": execution.document_id,
             "status": execution.status,
             "status_message": execution.status_message,
@@ -46,32 +48,25 @@ class ExecutionRepo(BaseRepository[Execution]):
             "instruction": execution.user_instruction,
             "llm_id": execution.model_id
         }
+        sorted_section_executions = sorted(execution.sections_executions, key=lambda se: se.order)
         
-        if execution.status == Status.PENDING or execution.status == Status.RUNNING:
-            sorted_sections = sorted(execution.document.sections, key=lambda s: s.order)
-            result_dict["sections"] = [
-                {"id": section.id,
-                 "name": section.name,
-                 "prompt": section.prompt,
-                 "output": "",
-                } for section in sorted_sections]
-        else:
-            sorted_section_executions = sorted(execution.sections_executions, key=lambda se: se.order)
-            sections = []
-            for section_exec in sorted_section_executions:
-                output = None
-                if section_exec.custom_output:
-                    output = section_exec.custom_output
-                elif section_exec.output:
-                    output = section_exec.output
-                sections.append({
-                    "id": None,
-                    "section_execution_id": section_exec.id,
-                    "name": section_exec.name,
-                    "prompt": section_exec.prompt,
-                    "output": output
-                })
-            result_dict["sections"] = sections
+        sections = []
+        for section_exec in sorted_section_executions:
+            output = None
+            if execution.status in [Status.PENDING, Status.RUNNING]:
+                output = ""
+            elif section_exec.custom_output:
+                output = section_exec.custom_output
+            elif section_exec.output:
+                output = section_exec.output
+            sections.append({
+                "id": section_exec.section.id,
+                "section_execution_id": section_exec.id,
+                "name": section_exec.name,
+                "prompt": section_exec.prompt,
+                "output": output
+            })
+        result_dict["sections"] = sections
         return result_dict
     
     async def get_execution(self, execution_id: str, with_model: bool = False) -> Execution:
@@ -83,6 +78,15 @@ class ExecutionRepo(BaseRepository[Execution]):
             query = query.options(joinedload(self.model.model))
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+    
+    async def count_executions_by_document_id(self, document_id: str) -> int:
+        """
+        Count the number of executions for a specific document ID.
+        """
+        query = select(self.model).where(self.model.document_id == document_id)
+        result = await self.session.execute(query)
+        executions = result.scalars().all()
+        return len(executions)
     
     
     async def get_execution_sections(self, execution_id: str) -> Execution:
@@ -142,3 +146,12 @@ class ExecutionRepo(BaseRepository[Execution]):
                  .order_by(self.model.created_at.desc()))
         result = await self.session.execute(query)
         return result.scalars().first()
+
+    async def check_if_document_exists(self, document_id: str) -> Execution:
+        """
+        Check if a document exists by its ID.
+        """
+        query = select(Document).where(Document.id == document_id)
+        result = await self.session.execute(query)
+        document = result.scalar_one_or_none()
+        return document

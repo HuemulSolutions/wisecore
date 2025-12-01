@@ -15,6 +15,7 @@ class Status(Enum):
 class Execution(BaseModel):
     __tablename__ = "execution"
     
+    name = Column(String, nullable=False)
     user_instruction = Column(String, nullable=True)
     status = Column(SAEnum(Status, name="status_enum"), nullable=False)
     status_message = Column(String, nullable=True)

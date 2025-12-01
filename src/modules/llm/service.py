@@ -19,6 +19,15 @@ class LLMService:
         """
         llms = await self.llm_repo.get_all()
         return llms
+    
+    async def get_llm_by_id(self, llm_id: str) -> LLM:
+        """
+        Retrieve an LLM by its ID.
+        """
+        llm = await self.llm_repo.get_by_id(llm_id)
+        if not llm:
+            raise ValueError(f"LLM with id {llm_id} not found.")
+        return llm
 
     async def get_llm_by_name(self, name: str) -> LLM:
         """

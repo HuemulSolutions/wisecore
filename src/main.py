@@ -9,23 +9,23 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from jose import JWTError, jwt
 from src.config import system_config
 
-from src.modules.template.routes import router as template_router
-from src.modules.template_section.routes import router as template_section_router
-from src.modules.organization.routes import router as organization_router
+from src.modules.auth.routes import router as auth_router
+from src.modules.chatbot.routes import router as chatbot_router
+from src.modules.context.routes import router as context_router
 from src.modules.document.routes import router as document_router
-from src.modules.llm.routes import router as llm_router
-from src.modules.execution.routes import router as execution_router
 from src.modules.document_type.routes import router as doc_type_router
+from src.modules.docx_template.routes import router as docx_template_router
+from src.modules.execution.routes import router as execution_router
 from src.modules.folder.routes import router as folder_router
+from src.modules.generation.routes import router as generation_router
+from src.modules.llm.routes import router as llm_router
+from src.modules.llm_provider.routes import router as llm_provider_router
+from src.modules.organization.routes import router as organization_router
+from src.modules.search.routes import router as search_router
 from src.modules.section.routes import router as section_router
 from src.modules.section_execution.routes import router as section_execution_router
-from src.modules.search.routes import router as search_router
-from src.modules.chatbot.routes import router as chatbot_router
-from src.modules.generation.routes import router as generation_router
-from src.modules.context.routes import router as context_router
-from src.modules.docx_template.routes import router as docx_template_router
-from src.modules.llm_provider.routes import router as llm_provider_router
-from src.modules.auth.routes import router as auth_router
+from src.modules.template.routes import router as template_router
+from src.modules.template_section.routes import router as template_section_router
 
 from src.database import load_models
 from contextlib import asynccontextmanager
@@ -97,24 +97,25 @@ app.add_middleware(
 )
 
 
-# Include the generation router
-app.include_router(generation_router, prefix="/api/v1", tags=["Generation"])
+# Include the routers in alphabetical order
+app.include_router(auth_router, prefix="/api/v1", tags=["Auth"])
 app.include_router(chatbot_router, prefix="/api/v1", tags=["Chatbot"])
-app.include_router(execution_router, prefix="/api/v1", tags=["Executions"])
-app.include_router(document_router, prefix="/api/v1", tags=["Documents"])
-app.include_router(docx_template_router, prefix="/api/v1", tags=["Docx Templates"])
 app.include_router(context_router, prefix="/api/v1", tags=["Context"])
+app.include_router(document_router, prefix="/api/v1", tags=["Documents"])
+app.include_router(doc_type_router, prefix="/api/v1", tags=["Document Types"])
+app.include_router(docx_template_router, prefix="/api/v1", tags=["Docx Templates"])
+app.include_router(execution_router, prefix="/api/v1", tags=["Executions"])
+app.include_router(folder_router, prefix="/api/v1", tags=["Folders"])
+app.include_router(generation_router, prefix="/api/v1", tags=["Generation"])
+app.include_router(llm_router, prefix="/api/v1", tags=["LLMs"])
+app.include_router(llm_provider_router, prefix="/api/v1", tags=["LLM Providers"])
+app.include_router(organization_router, prefix="/api/v1", tags=["Organizations"])
+app.include_router(search_router, prefix="/api/v1", tags=["Search"])
+app.include_router(section_router, prefix="/api/v1", tags=["Sections"])
+app.include_router(section_execution_router, prefix="/api/v1", tags=["Section Executions"])
 app.include_router(template_router, prefix="/api/v1", tags=["Templates"])
 app.include_router(template_section_router, prefix="/api/v1", tags=["Template Sections"])
-app.include_router(organization_router, prefix="/api/v1", tags=["Organizations"])
-app.include_router(section_router, prefix="/api/v1", tags=["Sections"])
-app.include_router(llm_router, prefix="/api/v1", tags=["LLMs"])
-app.include_router(search_router, prefix="/api/v1", tags=["Search"])
-app.include_router(doc_type_router, prefix="/api/v1", tags=["Document Types"])
-app.include_router(folder_router, prefix="/api/v1", tags=["Folders"])
-app.include_router(section_execution_router, prefix="/api/v1", tags=["Section Executions"])
-app.include_router(llm_provider_router, prefix="/api/v1", tags=["LLM Providers"])
-app.include_router(auth_router, prefix="/api/v1", tags=["Auth"])
+
 
 def custom_openapi():
     """
