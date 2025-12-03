@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
-from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 from src.database.core import get_session
@@ -22,7 +21,10 @@ async def create_user(
     auth_service = AuthService(session)
     try:
         user, token = await auth_service.create_user(
-            request.username, request.email, request.code
+            request.name,
+            request.last_name,
+            request.email,
+            request.code,
         )
         return ResponseSchema(
             transaction_id=transaction_id,

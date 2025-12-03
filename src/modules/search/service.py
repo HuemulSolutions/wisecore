@@ -1,7 +1,7 @@
 from .repository import ChunkRepo
 from .models import Chunk
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict
+from typing import List, Dict, Optional
 import re
 import tiktoken
 import asyncio
@@ -213,15 +213,23 @@ class ChunkService:
 
         return len(all_chunks)
     
-    async def search_chunks(self, query: str, organization_id: str, top_k: int = 25) -> List[Dict]:
+    async def search_chunks(
+        self,
+        query: str,
+        organization_id: str,
+        document_type_id: Optional[str] = None,
+        top_k: int = 25,
+    ) -> List[Dict]:
         """
         Search for chunks similar to the query using vector similarity.
+        Optionally filter results by document type.
         Returns the best-matching chunk per section grouped by document.
         """
         query_embedding = self.model.generate_embeddings(query)
         chunks = await self.chunk_repo.search_by_embedding(
             query_embedding,
             organization_id=organization_id,
+            document_type_id=document_type_id,
             limit=top_k
         )
 

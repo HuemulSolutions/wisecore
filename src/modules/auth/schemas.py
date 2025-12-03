@@ -1,6 +1,4 @@
-from typing import Optional
-
-from pydantic import BaseModel, EmailStr, model_validator
+from pydantic import BaseModel, EmailStr
 
 from .models import CodePurpose
 
@@ -8,7 +6,8 @@ from .models import CodePurpose
 class CreateUser(BaseModel):
     """Payload para crear un usuario."""
 
-    username: str
+    name: str
+    last_name: str
     email: EmailStr
     code: str
 

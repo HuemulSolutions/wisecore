@@ -2,12 +2,12 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 import secrets
 from typing import Optional, Tuple
-
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.modules.mail import BaseMailProvider, get_provider
-from .models import CodePurpose, LoginCode, User
+from .models import CodePurpose, LoginCode, User, UserStatus
 from .repository import LoginCodeRepo, UserRepo
+from src.modules.auth_type.service import AuthTypeService
+from src.modules.auth_type.models import AuthTypeEnum
 from src.utils import generate_jwt_token
 
 
@@ -20,18 +20,24 @@ class AuthService:
         self.session = session
         self.user_repo = UserRepo(session)
         self.login_code_repo = LoginCodeRepo(session)
+        self.auth_type_service = AuthTypeService(session)
         self.mail_provider = mail_provider or get_provider()
 
-    async def create_user(self, username: str, email: str, code: str) -> Tuple[User, str]:
+    async def create_user(
+        self, name: str, last_name: str, email: str, code: str
+    ) -> Tuple[User, str]:
         """
         Create a new user after validating a sign-up code.
         """
-        sanitized_username = username.strip() if username else ""
+        sanitized_name = name.strip() if name else ""
+        sanitized_last_name = last_name.strip() if last_name else ""
         sanitized_email = email.strip().lower() if email else ""
         sanitized_code = code.strip() if code else ""
 
-        if not sanitized_username:
-            raise ValueError("El nombre de usuario es obligatorio.")
+        if not sanitized_name:
+            raise ValueError("El nombre es obligatorio.")
+        if not sanitized_last_name:
+            raise ValueError("El apellido es obligatorio.")
         if not sanitized_email:
             raise ValueError("El email es obligatorio.")
         if not sanitized_code:
@@ -40,15 +46,24 @@ class AuthService:
         if await self.user_repo.get_by_email(sanitized_email):
             raise ValueError("Ya existe un usuario con ese email.")
 
-        if await self.user_repo.get_by_username(sanitized_username):
-            raise ValueError("Ya existe un usuario con ese nombre de usuario.")
-
         # Validate and consume sign-up code
+        print("Verifying sign-up code...")
         signup_code = await self._verify_and_consume_code(
             sanitized_email, sanitized_code, CodePurpose.SIGNUP
         )
-
-        user = User(username=sanitized_username, email=sanitized_email)
+        print("Sign-up code verified, getting internal auth type...")
+        internal_auth_type = await self.auth_type_service.get_auth_type_by_type(
+            AuthTypeEnum.INTERNAL
+        )
+        
+        user = User(
+            name=sanitized_name,
+            last_name=sanitized_last_name,
+            email=sanitized_email,
+            status=UserStatus.PENDING,
+            auth_type_id=internal_auth_type.id,
+        )
+        print("Creating user in database...")
         user = await self.user_repo.add(user)
 
         # Link the code to the newly created user for traceability
@@ -107,6 +122,7 @@ class AuthService:
         Create a new 6-digit login code for the user and send it via email.
         """
         user = await self.get_user_by_email(email)
+
         code = self._generate_six_digit_code()
 
         login_code = LoginCode(
@@ -133,6 +149,7 @@ class AuthService:
         Verify and consume a login code for an existing user.
         """
         user = await self.get_user_by_email(email)
+
         await self._verify_and_consume_code(
             user.email, code, CodePurpose.LOGIN, user.id
         )

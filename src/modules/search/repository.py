@@ -6,7 +6,7 @@ from .models import Chunk
 from src.modules.section_execution.models import SectionExecution
 from src.modules.execution.models import Execution
 from src.modules.document.models import Document
-from typing import List
+from typing import List, Optional
 
 
 DISTANCE = 0.75  # Similarity threshold
@@ -37,7 +37,13 @@ class ChunkRepo(BaseRepository[Chunk]):
             await self.session.refresh(chunk)
         return chunks
         
-    async def search_by_embedding(self, embedded_query: List[float], organization_id: str, limit: int = 25) -> List[Chunk]:
+    async def search_by_embedding(
+        self,
+        embedded_query: List[float],
+        organization_id: str,
+        document_type_id: Optional[str] = None,
+        limit: int = 25,
+    ) -> List[Chunk]:
         """
         Search for chunks by embedding similarity.
         """
@@ -57,6 +63,9 @@ class ChunkRepo(BaseRepository[Chunk]):
             .order_by(distance)
             # .limit(limit)
         )
+
+        if document_type_id:
+            query = query.where(Document.document_type_id == document_type_id)
         
         result = await self.session.execute(query)
         chunks = result.scalars().unique().all()

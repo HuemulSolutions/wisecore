@@ -17,12 +17,6 @@ class UserRepo(BaseRepository[User]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_by_username(self, username: str) -> Optional[User]:
-        """Return a user by username."""
-        query = select(self.model).where(self.model.username == username)
-        result = await self.session.execute(query)
-        return result.scalar_one_or_none()
-
 
 class LoginCodeRepo(BaseRepository[LoginCode]):
     def __init__(self, session: AsyncSession):
