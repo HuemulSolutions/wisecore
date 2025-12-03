@@ -38,6 +38,9 @@ class UserService:
         if not user:
             raise ValueError("Usuario no encontrado.")
 
+        if user.is_root_admin:
+            raise ValueError("El usuario administrador no puede ser eliminado.")
+
         await self.user_repo.delete(user)
 
     async def update_user_info(
