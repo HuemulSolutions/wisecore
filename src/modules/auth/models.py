@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Enum as SAEnum
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
-
 
 from src.database.base_model import BaseModel
 
@@ -14,18 +13,35 @@ class CodePurpose(str, Enum):
 
     SIGNUP = "signup"
     LOGIN = "login"
+    
+class UserStatus(str, Enum):
+    """Supported user statuses."""
+
+    PENDING = "pending"
+    ACTIVE = "active"
+    REJECTED = "rejected"
+    
 
 
 class User(BaseModel):
     __tablename__ = "users"
 
-    username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
-    is_active = Column(Boolean, default=True)
+    name = Column(String(100), nullable=True, default="")
+    last_name = Column(String(100), nullable=True, default="")
+    birthdate = Column(DateTime, nullable=True)
+    is_root_admin = Column(Boolean, default=False)
+    status = Column(String(50), default=UserStatus.PENDING, nullable=False)
+    activated_at = Column(DateTime, nullable=True)
+    photo_url = Column(String(255), nullable=True)
+    external_id = Column(String(100), nullable=True) # ID from external auth providers, no se usa por ahora
+    user_metadata = Column(JSONB, nullable=True) # Información adicional del usuario, no se usa por ahora
+    auth_type_id = Column(UUID(as_uuid=True), ForeignKey("auth_types.id"), nullable=False)
 
     login_codes = relationship(
         "LoginCode", back_populates="user", cascade="all, delete-orphan"
     )
+    auth_type = relationship("AuthType")
 
 
 class LoginCode(BaseModel):

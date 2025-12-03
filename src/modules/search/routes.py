@@ -10,15 +10,20 @@ router = APIRouter(prefix="/search")
 
 @router.get("/")
 async def search_chunks(query: str,
+                        document_type_id: str = None,
                         organization_id: str = Depends(get_organization_id),
                         session: Session = Depends(get_session),
                         transaction_id: str = Depends(get_transaction_id)):
     """
-    Search for chunks containing the query string.
+    Search for chunks containing the query string with optional document type filtering.
     """
     try:
         chunk_service = ChunkService(session)
-        result = await chunk_service.search_chunks(query, organization_id)
+        result = await chunk_service.search_chunks(
+            query,
+            organization_id,
+            document_type_id=document_type_id
+        )
         
         return ResponseSchema(
             transaction_id=transaction_id,

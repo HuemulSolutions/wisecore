@@ -26,6 +26,7 @@ from src.modules.section.routes import router as section_router
 from src.modules.section_execution.routes import router as section_execution_router
 from src.modules.template.routes import router as template_router
 from src.modules.template_section.routes import router as template_section_router
+from src.modules.user.routes import router as user_router
 
 from src.database import load_models
 from contextlib import asynccontextmanager
@@ -115,6 +116,7 @@ app.include_router(section_router, prefix="/api/v1", tags=["Sections"])
 app.include_router(section_execution_router, prefix="/api/v1", tags=["Section Executions"])
 app.include_router(template_router, prefix="/api/v1", tags=["Templates"])
 app.include_router(template_section_router, prefix="/api/v1", tags=["Template Sections"])
+app.include_router(user_router, prefix="/api/v1", tags=["Users"])
 
 
 def custom_openapi():
