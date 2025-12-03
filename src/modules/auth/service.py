@@ -71,7 +71,13 @@ class AuthService:
             signup_code.user_id = user.id
             await self.login_code_repo.update(signup_code)
 
-        token = generate_jwt_token({"sub": str(user.id), "email": user.email})
+        token = generate_jwt_token({
+            "sub": str(user.id), 
+            "email": user.email,
+            "name": user.name,
+            "last_name": user.last_name,
+            "is_root_admin": user.is_root_admin
+        })
         return user, token
 
     async def get_user_by_email(self, email: str) -> User:
@@ -153,7 +159,13 @@ class AuthService:
         await self._verify_and_consume_code(
             user.email, code, CodePurpose.LOGIN, user.id
         )
-        token = generate_jwt_token({"sub": str(user.id), "email": user.email})
+        token = generate_jwt_token({
+            "sub": str(user.id), 
+            "email": user.email,
+            "name": user.name,
+            "last_name": user.last_name,
+            "is_root_admin": user.is_root_admin
+        })
         return user, token
 
     async def _verify_and_consume_code(
