@@ -62,7 +62,24 @@ def upgrade() -> None:
         {"email": admin_email}
     ).fetchone()
     
-    if not existing_user:
+    if existing_user:
+        # Usuario existe, actualizarlo para ser root admin
+        connection.execute(
+            sa.text("""
+                UPDATE users 
+                SET is_root_admin = true, 
+                    status = 'active',
+                    activated_at = :activated_at,
+                    updated_at = :updated_at
+                WHERE email = :email
+            """),
+            {
+                "email": admin_email,
+                "activated_at": now,
+                "updated_at": now
+            }
+        )
+    else:
         # Crear el usuario root admin
         connection.execute(
             users.insert().values(
@@ -82,11 +99,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    admin_email = os.getenv("ADMIN_EMAIL")
-    if admin_email:
-        connection = op.get_bind()
-        # Eliminar el usuario admin
-        connection.execute(
-            sa.text("DELETE FROM users WHERE email = :email AND is_root_admin = true"),
-            {"email": admin_email}
-        )
+    pass

@@ -25,11 +25,18 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('last_name', sa.String(length=100), nullable=True))
     op.add_column('users', sa.Column('birthdate', sa.DateTime(), nullable=True))
     op.add_column('users', sa.Column('is_root_admin', sa.Boolean(), nullable=True))
-    op.add_column('users', sa.Column('status', sa.String(length=50), nullable=False))
+    op.add_column('users', sa.Column('status', sa.String(length=50), nullable=True))
     op.add_column('users', sa.Column('activated_at', sa.DateTime(), nullable=True))
     op.add_column('users', sa.Column('photo_url', sa.String(length=255), nullable=True))
     op.add_column('users', sa.Column('external_id', sa.String(length=100), nullable=True))
     op.add_column('users', sa.Column('user_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+    
+    # Establecer valores por defecto para usuarios existentes
+    op.execute("UPDATE users SET status = 'active', name = 'User', last_name = 'Lastname' WHERE status IS NULL OR name IS NULL OR last_name IS NULL")
+    
+    # Cambiar status a no nullable después de establecer valores por defecto
+    op.alter_column('users', 'status', nullable=False)
+    
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_column('users', 'username')
     op.drop_column('users', 'is_active')
